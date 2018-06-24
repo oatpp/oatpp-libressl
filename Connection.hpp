@@ -35,18 +35,18 @@ namespace oatpp { namespace libressl {
 class Connection : public oatpp::base::Controllable, public oatpp::data::stream::IOStream {
 public:
   typedef oatpp::os::io::Library Library;
-  typedef struct tls* Handle;
+  typedef struct tls* TLSHandle;
 public:
   OBJECT_POOL(libressl_Connection_Pool, Connection, 32);
   SHARED_OBJECT_POOL(libressl_Shared_Connection_Pool, Connection, 32);
 private:
-  Handle m_tlsHandle;
+  TLSHandle m_tlsHandle;
   Library::v_handle m_handle;
 public:
-  Connection(Handle tlsHandle, Library::v_handle handle);
+  Connection(TLSHandle tlsHandle, Library::v_handle handle);
 public:
   
-  static std::shared_ptr<Connection> createShared(Handle tlsHandle, Library::v_handle handle){
+  static std::shared_ptr<Connection> createShared(TLSHandle tlsHandle, Library::v_handle handle){
     return libressl_Shared_Connection_Pool::allocateShared(tlsHandle, handle);
   }
   
@@ -57,7 +57,7 @@ public:
   
   void close();
   
-  Handle getTlsHandle() {
+  TLSHandle getTlsHandle() {
     return m_tlsHandle;
   }
   

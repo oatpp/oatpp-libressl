@@ -23,3 +23,33 @@
  ***************************************************************************/
 
 #include "Config.hpp"
+
+namespace oatpp { namespace libressl {
+  
+std::shared_ptr<Config> Config::createDefaultServerConfig(const oatpp::base::String::PtrWrapper& keyFile,
+                                                          const oatpp::base::String::PtrWrapper& certFile) {
+  
+  unsigned int protocols = TLS_PROTOCOLS_ALL;
+  const char *ciphers = "secure";
+  
+  auto config = createShared();
+  
+  tls_config_set_protocols(config->getTLSConfig(), protocols);
+  
+  if(tls_config_set_ciphers(config->getTLSConfig(), ciphers) < 0) {
+    throw std::runtime_error("[oatpp::libressl::Config::createDefaultServerConfig]: failed call to tls_config_set_ciphers()");
+  }
+  
+  if(tls_config_set_key_file(config->getTLSConfig(), keyFile->c_str()) < 0) {
+    throw std::runtime_error("[oatpp::libressl::Config::createDefaultServerConfig]: failed call to tls_config_set_key_file()");
+  }
+  
+  if(tls_config_set_cert_file(config->getTLSConfig(), certFile->c_str()) < 0) {
+    throw std::runtime_error("[oatpp::libressl::Config::createDefaultServerConfig]: failed call to tls_config_set_cert_file()");
+  }
+  
+  return config;
+  
+}
+  
+}}

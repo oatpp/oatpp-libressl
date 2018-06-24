@@ -26,7 +26,7 @@
 
 namespace oatpp { namespace libressl {
   
-Connection::Connection(Handle tlsHandle, Library::v_handle handle)
+Connection::Connection(TLSHandle tlsHandle, Library::v_handle handle)
   : m_tlsHandle(tlsHandle)
   , m_handle(handle)
 {

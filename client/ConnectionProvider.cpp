@@ -69,7 +69,7 @@ std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection
     return nullptr;
   }
   
-  Connection::Handle tlsHandle = tls_client();
+  Connection::TLSHandle tlsHandle = tls_client();
   
   tls_configure(tlsHandle, m_config->getTLSConfig());
   
@@ -93,7 +93,7 @@ oatpp::async::Action ConnectionProvider::getConnectionAsync(oatpp::async::Abstra
     oatpp::base::String::PtrWrapper m_host;
     v_int32 m_port;
     std::shared_ptr<Config> m_config;
-    Connection::Handle m_tlsHandle;
+    Connection::TLSHandle m_tlsHandle;
     oatpp::os::io::Library::v_handle m_clientHandle;
     struct sockaddr_in m_client;
   public:
