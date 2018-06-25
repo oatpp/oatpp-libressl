@@ -26,8 +26,8 @@
 
 namespace oatpp { namespace libressl {
   
-std::shared_ptr<Config> Config::createDefaultServerConfig(const oatpp::base::String::PtrWrapper& keyFile,
-                                                          const oatpp::base::String::PtrWrapper& certFile) {
+std::shared_ptr<Config> Config::createDefaultServerConfig(const oatpp::String& keyFile,
+                                                          const oatpp::String& certFile) {
   
   unsigned int protocols = TLS_PROTOCOLS_ALL;
   const char *ciphers = "secure";

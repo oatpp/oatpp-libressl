@@ -90,7 +90,7 @@ oatpp::async::Action ConnectionProvider::getConnectionAsync(oatpp::async::Abstra
   
   class ConnectCoroutine : public oatpp::async::CoroutineWithResult<ConnectCoroutine, std::shared_ptr<oatpp::data::stream::IOStream>> {
   private:
-    oatpp::base::String::PtrWrapper m_host;
+    oatpp::String m_host;
     v_int32 m_port;
     std::shared_ptr<Config> m_config;
     Connection::TLSHandle m_tlsHandle;
@@ -98,7 +98,7 @@ oatpp::async::Action ConnectionProvider::getConnectionAsync(oatpp::async::Abstra
     struct sockaddr_in m_client;
   public:
     
-    ConnectCoroutine(const oatpp::base::String::PtrWrapper& host,
+    ConnectCoroutine(const oatpp::String& host,
                      v_int32 port,
                      const std::shared_ptr<Config>& config)
       : m_host(host)
