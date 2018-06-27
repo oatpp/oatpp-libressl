@@ -36,7 +36,7 @@ private:
   std::shared_ptr<Config> m_config;
 public:
   ConnectionProvider(const std::shared_ptr<Config>& config,
-                     const oatpp::base::String::PtrWrapper& host,
+                     const oatpp::String& host,
                      v_int32 port)
     : ClientConnectionProvider(host, port)
     , m_config(config)
@@ -44,7 +44,7 @@ public:
 public:
   
   static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config,
-                                                          const oatpp::base::String::PtrWrapper& host,
+                                                          const oatpp::String& host,
                                                           v_int32 port){
     return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, host, port));
   }

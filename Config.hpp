@@ -25,7 +25,7 @@
 #ifndef oatpp_libressl_Config_hpp
 #define oatpp_libressl_Config_hpp
 
-#include "oatpp/core/base/String.hpp"
+#include "oatpp/core/Types.hpp"
 
 #include <tls.h>
 #include <memory>
@@ -47,8 +47,8 @@ public:
     return std::make_shared<Config>();
   }
   
-  static std::shared_ptr<Config> createDefaultServerConfig(const oatpp::base::String::PtrWrapper& keyFile,
-                                                           const oatpp::base::String::PtrWrapper& certFile);
+  static std::shared_ptr<Config> createDefaultServerConfig(const oatpp::String& keyFile,
+                                                           const oatpp::String& certFile);
   
   virtual ~Config(){
     tls_config_free(m_config);
