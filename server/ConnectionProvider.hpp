@@ -42,16 +42,7 @@ private:
   oatpp::os::io::Library::v_handle instantiateServer();
   Connection::TLSHandle instantiateTLSServer();
 public:
-  ConnectionProvider(const std::shared_ptr<Config>& config,
-                     v_word16 port,
-                     bool nonBlocking = false)
-    : ServerConnectionProvider(port)
-    , m_config(config)
-    , m_nonBlocking(nonBlocking)
-  {
-    m_serverHandle = instantiateServer();
-    m_tlsServerHandle = instantiateTLSServer();
-  }
+  ConnectionProvider(const std::shared_ptr<Config>& config, v_word16 port, bool nonBlocking = false);
 public:
   
   static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config,

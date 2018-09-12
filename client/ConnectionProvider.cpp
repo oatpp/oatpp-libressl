@@ -31,7 +31,24 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+#include <openssl/crypto.h>
+
 namespace oatpp { namespace libressl { namespace client {
+  
+ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
+                                       const oatpp::String& host,
+                                       v_int32 port)
+  : ClientConnectionProvider(host, port)
+  , m_config(config)
+{
+  auto calback = CRYPTO_get_locking_callback();
+  if(!calback) {
+    OATPP_LOGD("WARNING", "libressl. CRYPTO_set_locking_callback is NOT set. "
+               "This can cause problems using libressl in multithreaded environment! "
+               "Please call oatpp::libressl::Callbacks::setDefaultCallbacks() or "
+               "consider setting custom locking_callback.");
+  }
+}
   
 std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection(){
   

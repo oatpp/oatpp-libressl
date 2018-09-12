@@ -35,12 +35,7 @@ class ConnectionProvider : public base::Controllable, public oatpp::network::Cli
 private:
   std::shared_ptr<Config> m_config;
 public:
-  ConnectionProvider(const std::shared_ptr<Config>& config,
-                     const oatpp::String& host,
-                     v_int32 port)
-    : ClientConnectionProvider(host, port)
-    , m_config(config)
-  {}
+  ConnectionProvider(const std::shared_ptr<Config>& config, const oatpp::String& host, v_int32 port);
 public:
   
   static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config,
