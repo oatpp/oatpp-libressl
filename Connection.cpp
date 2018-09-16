@@ -41,7 +41,7 @@ Connection::Library::v_size Connection::write(const void *buff, Library::v_size 
   auto result = tls_write(m_tlsHandle, buff, count);
   if(result <= 0) {
     if (result == TLS_WANT_POLLIN || result == TLS_WANT_POLLOUT) {
-      return ERROR_IO_WAIT_RETRY;
+      return oatpp::data::stream::Errors::ERROR_IO_WAIT_RETRY;
     }
     auto error = tls_error(m_tlsHandle);
     if(error){
@@ -55,7 +55,7 @@ Connection::Library::v_size Connection::read(void *buff, Library::v_size count){
   auto result = tls_read(m_tlsHandle, buff, count);
   if(result <= 0) {
     if (result == TLS_WANT_POLLIN || result == TLS_WANT_POLLOUT) {
-      return ERROR_IO_WAIT_RETRY;
+      return oatpp::data::stream::Errors::ERROR_IO_WAIT_RETRY;
     }
     auto error = tls_error(m_tlsHandle);
     if(error){
