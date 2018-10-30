@@ -1,8 +1,12 @@
 # oatpp-libressl
-This submodule provides secure server and client connection providers for oatpp. Based on LibreSSL.
+This submodule provides secure server and client connection providers for oatpp applications. Based on LibreSSL.
 
 More about oat++:
 - Website: [https://oatpp.io](https://oatpp.io)
+
+## Requires
+
+LibreSSL installed.
 
 ## Example
 
