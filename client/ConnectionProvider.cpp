@@ -26,6 +26,8 @@
 
 #include "oatpp-libressl/Connection.hpp"
 
+#include "oatpp/core/utils/ConversionUtils.hpp"
+
 #include <fcntl.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -37,10 +39,15 @@ namespace oatpp { namespace libressl { namespace client {
   
 ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
                                        const oatpp::String& host,
-                                       v_int32 port)
-  : ClientConnectionProvider(host, port)
-  , m_config(config)
+                                       v_word16 port)
+  : m_config(config)
+  , m_host(host)
+  , m_port(port)
 {
+  
+  setProperty(PROPERTY_HOST, m_host);
+  setProperty(PROPERTY_PORT, oatpp::utils::conversion::int32ToStr(port));
+  
   auto calback = CRYPTO_get_locking_callback();
   if(!calback) {
     OATPP_LOGD("WARNING", "libressl. CRYPTO_set_locking_callback is NOT set. "

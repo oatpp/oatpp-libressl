@@ -24,6 +24,8 @@
 
 #include "ConnectionProvider.hpp"
 
+#include "oatpp/core/utils/ConversionUtils.hpp"
+
 #include <fcntl.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -37,10 +39,13 @@ namespace oatpp { namespace libressl { namespace server {
 ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
                                        v_word16 port,
                                        bool nonBlocking)
-  : ServerConnectionProvider(port)
-  , m_config(config)
+  : m_config(config)
+  , m_port(port)
   , m_nonBlocking(nonBlocking)
 {
+  
+  setProperty(PROPERTY_HOST, "localhost");
+  setProperty(PROPERTY_PORT, oatpp::utils::conversion::int32ToStr(port));
   
   auto calback = CRYPTO_get_locking_callback();
   if(!calback) {

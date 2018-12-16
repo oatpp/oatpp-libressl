@@ -34,13 +34,15 @@ namespace oatpp { namespace libressl { namespace client {
 class ConnectionProvider : public base::Controllable, public oatpp::network::ClientConnectionProvider {
 private:
   std::shared_ptr<Config> m_config;
+  oatpp::String m_host;
+  v_word16 m_port;
 public:
-  ConnectionProvider(const std::shared_ptr<Config>& config, const oatpp::String& host, v_int32 port);
+  ConnectionProvider(const std::shared_ptr<Config>& config, const oatpp::String& host, v_word16 port);
 public:
   
   static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config,
                                                           const oatpp::String& host,
-                                                          v_int32 port){
+                                                          v_word16 port) {
     return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, host, port));
   }
   
