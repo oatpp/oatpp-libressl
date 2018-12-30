@@ -45,7 +45,7 @@ Connection::Library::v_size Connection::write(const void *buff, Library::v_size 
     }
     auto error = tls_error(m_tlsHandle);
     if(error){
-      OATPP_LOGD("[oatpp::libressl::Connection::read(...)]", "error - %s", error);
+      OATPP_LOGD("[oatpp::libressl::Connection::write(...)]", "error - %s", error);
     }
   }
   return result;
