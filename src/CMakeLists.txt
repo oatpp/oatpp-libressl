@@ -63,10 +63,3 @@ target_link_libraries(${OATPP_THIS_MODULE_NAME}
         PRIVATE ${PKG_SSL_LIBRARIES}
         PRIVATE ${PKG_CRYPTO_LIBRARIES}
 )
-
-#######################################################################################################
-## INSTALL TARGETS
-
-if(OATPP_INSTALL)
-    include("module-install.cmake")
-endif()
