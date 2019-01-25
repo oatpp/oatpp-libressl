@@ -12,14 +12,38 @@ add_library(${OATPP_THIS_MODULE_NAME}
         oatpp-libressl/server/ConnectionProvider.hpp
 )
 
-if(MODULE_WAIT_DEPS)
-    add_dependencies(${OATPP_THIS_MODULE_NAME} ${LIB_oatpp})
+if(OATPP_MODULES_LOCATION STREQUAL OATPP_MODULES_LOCATION_EXTERNAL)
+    add_dependencies(${OATPP_THIS_MODULE_NAME} ${LIB_OATPP_EXTERNAL})
+endif()
+
+if(TARGET oatpp::oatpp) ## OATPP_MODULES_LOCATION == INSTALLED
+
+    message("Linking library to installed oatpp lib")
+
+    target_link_libraries(${OATPP_THIS_MODULE_NAME}
+            PRIVATE oatpp::oatpp
+            PRIVATE oatpp::oatpp-test
+    )
+
+    #target_include_directories(${OATPP_THIS_MODULE_NAME}
+    #        PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/oatpp-${OATPP_THIS_MODULE_VERSION}/oatpp ## main oatpp module
+    #)
+
+else()
+
+    message("Linking library to found in provided path oatpp lib")
+
+    target_include_directories(${OATPP_THIS_MODULE_NAME} PUBLIC $<BUILD_INTERFACE:${OATPP_DIR_SRC}>)
+    target_link_directories(${OATPP_THIS_MODULE_NAME} PRIVATE ${OATPP_DIR_LIB})
+    target_link_libraries(${OATPP_THIS_MODULE_NAME}
+            PRIVATE oatpp
+            PRIVATE oatpp-test
+    )
+
 endif()
 
 target_include_directories(${OATPP_THIS_MODULE_NAME}
-        PUBLIC $<BUILD_INTERFACE:${OATPP_DIR_SRC}/src>
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/oatpp-${OATPP_THIS_MODULE_VERSION}/${OATPP_THIS_MODULE_NAME}
 )
 
 target_include_directories(${OATPP_THIS_MODULE_NAME}
@@ -29,15 +53,12 @@ target_include_directories(${OATPP_THIS_MODULE_NAME}
 )
 
 target_link_directories(${OATPP_THIS_MODULE_NAME}
-        PRIVATE ${OATPP_DIR_LIB}/src
         PRIVATE ${PKG_TLS_LIBRARY_DIRS}
         PRIVATE ${PKG_SSL_LIBRARY_DIRS}
         PRIVATE ${PKG_CRYPTO_LIBRARY_DIRS}
 )
 
 target_link_libraries(${OATPP_THIS_MODULE_NAME}
-        PRIVATE oatpp
-        PRIVATE oatpp-test
         PRIVATE ${PKG_TLS_LIBRARIES}
         PRIVATE ${PKG_SSL_LIBRARIES}
         PRIVATE ${PKG_CRYPTO_LIBRARIES}
@@ -47,5 +68,5 @@ target_link_libraries(${OATPP_THIS_MODULE_NAME}
 ## INSTALL TARGETS
 
 if(OATPP_INSTALL)
-    include("oatpp-module-install.cmake")
+    include("module-install.cmake")
 endif()
