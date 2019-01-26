@@ -18,27 +18,7 @@ endif()
 
 add_dependencies(module-tests ${OATPP_THIS_MODULE_NAME})
 
-if(TARGET oatpp::oatpp) ## OATPP_MODULES_LOCATION == INSTALLED
-
-    message("Linking test executable to installed oatpp lib")
-
-    target_link_libraries(${OATPP_THIS_MODULE_NAME}
-            PRIVATE oatpp::oatpp
-            PRIVATE oatpp::oatpp-test
-    )
-
-else()
-
-    message("Linking test executable to found in provided path oatpp lib")
-
-    target_include_directories(module-tests PUBLIC $<BUILD_INTERFACE:${OATPP_DIR_SRC}>)
-    target_link_directories(module-tests PRIVATE ${OATPP_DIR_LIB})
-    target_link_libraries(module-tests
-            PRIVATE oatpp
-            PRIVATE oatpp-test
-    )
-
-endif()
+target_link_oatpp(module-tests)
 
 target_link_directories(module-tests
         PRIVATE ${PKG_TLS_LIBRARY_DIRS}

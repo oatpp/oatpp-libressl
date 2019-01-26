@@ -12,9 +12,12 @@ set(OATPP_THIS_MODULE_DIRECTORIES oatpp-libressl) ## list of directories to inst
 
 ###################################################################################################
 
-project(${OATPP_THIS_MODULE_NAME})
-
-set(CMAKE_CXX_STANDARD 11)
+project(${OATPP_THIS_MODULE_NAME}
+        VERSION ${OATPP_THIS_MODULE_VERSION}
+        LANGUAGES CXX
+        HOMEPAGE_URL "https://github.com/oatpp/oatpp-libressl"
+        DESCRIPTION "This submodule provides secure server and client connection providers for oatpp applications. Based on LibreSSL."
+)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(OATPP_DIR_SRC "Path to oatpp module directory (sources)")
@@ -24,13 +27,8 @@ option(OATPP_INSTALL "Install module binaries" ON)
 
 set(OATPP_MODULES_LOCATION "INSTALLED" CACHE STRING "Location where to find oatpp modules. can be [INSTALLED|EXTERNAL|CUSTOM]")
 
-message("OATPP_MODULE='${OATPP_THIS_MODULE_NAME}'")
-
-#####################################################################################################
-##  if OATPP_BUILD_TESTS=ON and both options OATPP_DIR_SRC and  OATPP_DIR_LIB are empty
-##  oatpp lib will be git-cloned.
-##  Otherwise options OATPP_DIR_SRC and OATPP_DIR_LIB are expected to point to valid directories
-#####################################################################################################
+###################################################################################################
+## get oatpp main module in specified location
 
 set(OATPP_MODULES_LOCATION_INSTALLED INSTALLED)
 set(OATPP_MODULES_LOCATION_EXTERNAL EXTERNAL)
@@ -84,6 +82,9 @@ else()
     message("FATAL_ERROR Unknown location to find oatpp '${OATPP_MODULES_LOCATION}'")
 endif()
 
+###################################################################################################
+## get dependencies
+
 message("\n############################################################################")
 message("## ${OATPP_THIS_MODULE_NAME} module. Resolving dependencies...\n")
 
@@ -117,13 +118,14 @@ message("[libressl] VERSION=${PKG_CRYPTO_VERSION}")
 
 message("\n############################################################################\n")
 
+###################################################################################################
+## define targets
+
+include(cmake/module-utils.cmake)
+
 add_subdirectory("src")
 
 if(OATPP_BUILD_TESTS)
     enable_testing()
     add_subdirectory("test")
-endif()
-
-if(OATPP_INSTALL)
-    include("cmake/module-install.cmake")
 endif()
