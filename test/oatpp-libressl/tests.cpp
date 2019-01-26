@@ -41,8 +41,6 @@ void runTests() {
   /* set lockingCallback for libressl */
   oatpp::libressl::Callbacks::setDefaultCallbacks();
 
-  OATPP_LOGD("test", "insert oatpp-swagger tests here");
-
   OATPP_RUN_TEST(Test);
 
 }

@@ -12,6 +12,12 @@ add_library(${OATPP_THIS_MODULE_NAME}
         oatpp-libressl/server/ConnectionProvider.hpp
 )
 
+set_target_properties(${OATPP_THIS_MODULE_NAME} PROPERTIES
+        CXX_STANDARD 11
+        CXX_EXTENSIONS OFF
+        CXX_STANDARD_REQUIRED ON
+)
+
 if(OATPP_MODULES_LOCATION STREQUAL OATPP_MODULES_LOCATION_EXTERNAL)
     add_dependencies(${OATPP_THIS_MODULE_NAME} ${LIB_OATPP_EXTERNAL})
 endif()
