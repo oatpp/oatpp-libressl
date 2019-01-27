@@ -15,8 +15,6 @@ set(OATPP_THIS_MODULE_DIRECTORIES oatpp-libressl) ## list of directories to inst
 project(${OATPP_THIS_MODULE_NAME}
         VERSION ${OATPP_THIS_MODULE_VERSION}
         LANGUAGES CXX
-        HOMEPAGE_URL "https://github.com/oatpp/oatpp-libressl"
-        DESCRIPTION "This submodule provides secure server and client connection providers for oatpp applications. Based on LibreSSL."
 )
 
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
