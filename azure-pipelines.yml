@@ -4,11 +4,14 @@
 # https://aka.ms/yaml
 
 jobs:
-  - job: macOS
-    displayName: 'Build - macOS-10.13'
+  - job: ubuntu_16_04
+    displayName: 'Build - Ubuntu 16.04'
     continueOnError: false
     pool:
-      vmImage: 'macOS-10.13'
+      vmImage: 'Ubuntu 16.04'
+    container:
+      image: lganzzzo/ubuntu-cmake-libressl:1.0
+      
     workspace:
       clean: all
     steps:
