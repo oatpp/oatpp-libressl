@@ -34,11 +34,11 @@ target_include_directories(${OATPP_THIS_MODULE_NAME}
         PUBLIC ${PKG_CRYPTO_INCLUDE_DIRS}
 )
 
-target_link_directories(${OATPP_THIS_MODULE_NAME}
-        PRIVATE ${PKG_TLS_LIBRARY_DIRS}
-        PRIVATE ${PKG_SSL_LIBRARY_DIRS}
-        PRIVATE ${PKG_CRYPTO_LIBRARY_DIRS}
-)
+#target_link_directories(${OATPP_THIS_MODULE_NAME}
+#        PRIVATE ${PKG_TLS_LIBRARY_DIRS}
+#        PRIVATE ${PKG_SSL_LIBRARY_DIRS}
+#        PRIVATE ${PKG_CRYPTO_LIBRARY_DIRS}
+#)
 
 target_link_libraries(${OATPP_THIS_MODULE_NAME}
         PRIVATE ${PKG_TLS_LIBRARIES}

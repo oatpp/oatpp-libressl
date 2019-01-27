@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 ###################################################################################################
 ## These variables are passed to oatpp-module-install.cmake script
@@ -15,8 +15,6 @@ set(OATPP_THIS_MODULE_DIRECTORIES oatpp-libressl) ## list of directories to inst
 project(${OATPP_THIS_MODULE_NAME}
         VERSION ${OATPP_THIS_MODULE_VERSION}
         LANGUAGES CXX
-        HOMEPAGE_URL "https://github.com/oatpp/oatpp-libressl"
-        DESCRIPTION "This submodule provides secure server and client connection providers for oatpp applications. Based on LibreSSL."
 )
 
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
@@ -82,6 +80,10 @@ else()
     message("FATAL_ERROR Unknown location to find oatpp '${OATPP_MODULES_LOCATION}'")
 endif()
 
+if(OATPP_DIR_LIB)
+    link_directories(${OATPP_DIR_LIB})
+endif()
+
 ###################################################################################################
 ## get dependencies
 
@@ -115,6 +117,12 @@ message("[libressl] LIBRARIES=${PKG_CRYPTO_LIBRARIES}")
 message("[libressl] LIBRARY_DIRS=${PKG_CRYPTO_LIBRARY_DIRS}")
 message("[libressl] INCLUDE_DIRS=${PKG_CRYPTO_INCLUDE_DIRS}")
 message("[libressl] VERSION=${PKG_CRYPTO_VERSION}")
+
+link_directories(
+        ${PKG_TLS_LIBRARY_DIRS}
+        ${PKG_SSL_LIBRARY_DIRS}
+        ${PKG_CRYPTO_LIBRARY_DIRS}
+)
 
 message("\n############################################################################\n")
 

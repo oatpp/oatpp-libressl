@@ -20,11 +20,11 @@ add_dependencies(module-tests ${OATPP_THIS_MODULE_NAME})
 
 target_link_oatpp(module-tests)
 
-target_link_directories(module-tests
-        PRIVATE ${PKG_TLS_LIBRARY_DIRS}
-        PRIVATE ${PKG_SSL_LIBRARY_DIRS}
-        PRIVATE ${PKG_CRYPTO_LIBRARY_DIRS}
-)
+#target_link_directories(module-tests
+#        PRIVATE ${PKG_TLS_LIBRARY_DIRS}
+#        PRIVATE ${PKG_SSL_LIBRARY_DIRS}
+#        PRIVATE ${PKG_CRYPTO_LIBRARY_DIRS}
+#)
 
 target_link_libraries(module-tests
         PRIVATE ${OATPP_THIS_MODULE_NAME}
