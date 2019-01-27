@@ -14,3 +14,9 @@ path_classifiers:
     - LICENSE.txt
 extraction:
   cpp:
+    after_prepare:
+      - mv utility/install-deps/install-libressl.sh ./
+      - ./install-libressl.sh
+    configure:
+      command:
+        - cmake -DOATPP_MODULES_LOCATION=EXTERNAL .
