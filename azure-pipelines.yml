@@ -11,14 +11,9 @@ jobs:
       vmImage: 'Ubuntu 16.04'
     container:
       image: lganzzzo/ubuntu-cmake-libressl:1.0
-      
     workspace:
       clean: all
     steps:
-      - script: |
-          ./install-libressl.sh
-        displayName: 'install-deps'
-        workingDirectory: utility/install-deps
       - script: |
           mkdir build
       - task: CMake@1
