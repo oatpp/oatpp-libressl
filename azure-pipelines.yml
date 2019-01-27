@@ -13,6 +13,10 @@ jobs:
       clean: all
     steps:
       - script: |
+          ./install-libressl.sh
+        displayName: 'install-deps'
+        workingDirectory: utility/install-deps
+      - script: |
           mkdir build
       - task: CMake@1
       - script: |
