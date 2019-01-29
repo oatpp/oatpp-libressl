@@ -10,7 +10,7 @@ LibreSSL installed.
 
 ## Example
 
-See: [Full example project TLS-Libressl](https://github.com/oatpp/oatpp-examples/tree/master/tls-libressl)
+See: [Full example project TLS-Libressl](https://github.com/oatpp/example-libressl)
 
 ### Create server connection provider
 
