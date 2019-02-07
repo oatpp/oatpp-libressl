@@ -22,6 +22,6 @@ cd libressl-2.9.0
 #############################################
 ## build and install libressl
 
-cmake .
+cmake -DBUILD_SHARED_LIBS=ON .
 make
 make install

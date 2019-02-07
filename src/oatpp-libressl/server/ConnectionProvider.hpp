@@ -37,10 +37,10 @@ private:
   std::shared_ptr<Config> m_config;
   v_word16 m_port;
   bool m_nonBlocking;
-  oatpp::os::io::Library::v_handle m_serverHandle;
+  data::v_io_handle m_serverHandle;
   Connection::TLSHandle m_tlsServerHandle;
 private:
-  oatpp::os::io::Library::v_handle instantiateServer();
+  data::v_io_handle instantiateServer();
   Connection::TLSHandle instantiateTLSServer();
 public:
   ConnectionProvider(const std::shared_ptr<Config>& config, v_word16 port, bool nonBlocking = false);
@@ -52,11 +52,7 @@ public:
     return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, port, nonBlocking));
   }
   
-  ~ConnectionProvider() {
-    tls_close(m_tlsServerHandle);
-    tls_free(m_tlsServerHandle);
-    oatpp::os::io::Library::handle_close(m_serverHandle);
-  }
+  ~ConnectionProvider();
   
   std::shared_ptr<IOStream> getConnection() override;
   

@@ -24,9 +24,11 @@
 
 #include "Connection.hpp"
 
+#include <unistd.h>
+
 namespace oatpp { namespace libressl {
   
-Connection::Connection(TLSHandle tlsHandle, Library::v_handle handle)
+Connection::Connection(TLSHandle tlsHandle, data::v_io_handle handle)
   : m_tlsHandle(tlsHandle)
   , m_handle(handle)
 {
@@ -37,11 +39,11 @@ Connection::~Connection(){
   tls_free(m_tlsHandle);
 }
 
-Connection::Library::v_size Connection::write(const void *buff, Library::v_size count){
+data::v_io_size Connection::write(const void *buff, data::v_io_size count){
   auto result = tls_write(m_tlsHandle, buff, count);
-  if(result <= 0) {
+  if(result < 0) {
     if (result == TLS_WANT_POLLIN || result == TLS_WANT_POLLOUT) {
-      return oatpp::data::stream::Errors::ERROR_IO_WAIT_RETRY;
+      return data::IOError::WAIT_RETRY;
     }
     auto error = tls_error(m_tlsHandle);
     if(error){
@@ -51,11 +53,11 @@ Connection::Library::v_size Connection::write(const void *buff, Library::v_size 
   return result;
 }
 
-Connection::Library::v_size Connection::read(void *buff, Library::v_size count){
+data::v_io_size Connection::read(void *buff, data::v_io_size count){
   auto result = tls_read(m_tlsHandle, buff, count);
-  if(result <= 0) {
+  if(result < 0) {
     if (result == TLS_WANT_POLLIN || result == TLS_WANT_POLLOUT) {
-      return oatpp::data::stream::Errors::ERROR_IO_WAIT_RETRY;
+      return data::IOError::WAIT_RETRY;
     }
     auto error = tls_error(m_tlsHandle);
     if(error){
@@ -67,7 +69,7 @@ Connection::Library::v_size Connection::read(void *buff, Library::v_size count){
 
 void Connection::close(){
   tls_close(m_tlsHandle);
-  Library::handle_close(m_handle);
+  ::close(m_handle);
 }
   
 }}

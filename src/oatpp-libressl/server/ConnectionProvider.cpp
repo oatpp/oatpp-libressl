@@ -34,6 +34,8 @@
 
 #include <openssl/crypto.h>
 
+#include <unistd.h>
+
 namespace oatpp { namespace libressl { namespace server {
   
 ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
@@ -49,7 +51,8 @@ ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
   
   auto calback = CRYPTO_get_locking_callback();
   if(!calback) {
-    OATPP_LOGD("WARNING", "libressl. CRYPTO_set_locking_callback is NOT set. "
+    OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::ConnectionProvider()]",
+               "WARNING. libressl. CRYPTO_set_locking_callback is NOT set. "
                "This can cause problems using libressl in multithreaded environment! "
                "Please call oatpp::libressl::Callbacks::setDefaultCallbacks() or "
                "consider setting custom locking_callback.");
@@ -58,10 +61,16 @@ ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
   m_serverHandle = instantiateServer();
   m_tlsServerHandle = instantiateTLSServer();
 }
+
+ConnectionProvider::~ConnectionProvider() {
+  tls_close(m_tlsServerHandle);
+  tls_free(m_tlsServerHandle);
+  ::close(m_serverHandle);
+}
   
-oatpp::os::io::Library::v_handle ConnectionProvider::instantiateServer(){
+data::v_io_handle ConnectionProvider::instantiateServer(){
   
-  oatpp::os::io::Library::v_handle serverHandle;
+  data::v_io_handle serverHandle;
   v_int32 ret;
   int yes = 1;
   
@@ -79,21 +88,21 @@ oatpp::os::io::Library::v_handle ConnectionProvider::instantiateServer(){
   
   ret = setsockopt(serverHandle, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
   if(ret < 0) {
-    OATPP_LOGD("oatpp::libressl::server::ConnectionProvider", "Warning failed to set %s for accepting socket", "SO_REUSEADDR");
+    OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::instantiateServer()]", "Warning failed to set %s for accepting socket", "SO_REUSEADDR");
   }
   
   ret = bind(serverHandle, (struct sockaddr *)&addr, sizeof(addr));
   
   if(ret != 0) {
-    oatpp::os::io::Library::handle_close(serverHandle);
-    throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider]: Can't bind to address");
+    ::close(serverHandle);
+    throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider::instantiateServer()]: Can't bind to address");
     return -1 ;
   }
   
   ret = listen(serverHandle, 10000);
   if(ret < 0) {
-    oatpp::os::io::Library::handle_close(serverHandle);
-    throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider]: Failed to listen");
+    ::close(serverHandle);
+    throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider::instantiateServer()]: Failed to listen");
     return -1 ;
   }
   
@@ -108,12 +117,12 @@ Connection::TLSHandle ConnectionProvider::instantiateTLSServer() {
   Connection::TLSHandle handle = tls_server();
   
   if(handle == NULL) {
-    throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider]: Failed to create tls_server");
+    throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider::instantiateTLSServer()]: Failed to create tls_server");
   }
   
   if(tls_configure(handle, m_config->getTLSConfig()) < 0) {
-    OATPP_LOGD("oatpp::libressl::server::ConnectionProvider", "Error on call to 'tls_configure'. %s", tls_error(handle));
-    throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider]: Failed to configure tls_server");
+    OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::instantiateTLSServer()]", "Error on call to 'tls_configure'. %s", tls_error(handle));
+    throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider::instantiateTLSServer()]: Failed to configure tls_server");
   }
   
   return handle;
@@ -122,16 +131,14 @@ Connection::TLSHandle ConnectionProvider::instantiateTLSServer() {
 
 std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection(){
   
-  //oatpp::test::PerformanceChecker checker("Accept Checker");
-  
-  oatpp::os::io::Library::v_handle handle = accept(m_serverHandle, nullptr, nullptr);
+  data::v_io_handle handle = accept(m_serverHandle, nullptr, nullptr);
   
   if (handle < 0) {
     v_int32 error = errno;
     if(error == EAGAIN || error == EWOULDBLOCK){
       return nullptr;
     } else {
-      OATPP_LOGD("Server", "Error: %d", error);
+      OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::getConnection()]", "Error: %d", error);
       return nullptr;
     }
   }
@@ -140,7 +147,7 @@ std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection
   int yes = 1;
   v_int32 ret = setsockopt(handle, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(int));
   if(ret < 0) {
-    OATPP_LOGD("oatpp::libressl::server::ConnectionProvider", "Warning failed to set %s for socket", "SO_NOSIGPIPE");
+    OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::getConnection()]", "Warning failed to set %s for socket", "SO_NOSIGPIPE");
   }
 #endif
   
@@ -154,8 +161,8 @@ std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection
   Connection::TLSHandle tlsHandle;
   
   if(tls_accept_socket(m_tlsServerHandle, &tlsHandle, handle) < 0) {
-    OATPP_LOGD("oatpp::libressl::server::ConnectionProvider", "Error on call to 'tls_accept_socket'");
-    oatpp::os::io::Library::handle_close(handle);
+    OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::getConnection()]", "Error on call to 'tls_accept_socket'");
+    ::close(handle);
   }
   
   return Connection::createShared(tlsHandle, handle);

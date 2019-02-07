@@ -28,32 +28,31 @@
 #include "oatpp/core/base/memory/ObjectPool.hpp"
 #include "oatpp/core/data/stream/Stream.hpp"
 
-#include <tls.h> // link -ltls
+#include <tls.h>
 
 namespace oatpp { namespace libressl {
     
 class Connection : public oatpp::base::Controllable, public oatpp::data::stream::IOStream {
 public:
-  typedef oatpp::os::io::Library Library;
   typedef struct tls* TLSHandle;
 public:
   OBJECT_POOL(libressl_Connection_Pool, Connection, 32);
   SHARED_OBJECT_POOL(libressl_Shared_Connection_Pool, Connection, 32);
 private:
   TLSHandle m_tlsHandle;
-  Library::v_handle m_handle;
+  data::v_io_handle m_handle;
 public:
-  Connection(TLSHandle tlsHandle, Library::v_handle handle);
+  Connection(TLSHandle tlsHandle, data::v_io_handle handle);
 public:
   
-  static std::shared_ptr<Connection> createShared(TLSHandle tlsHandle, Library::v_handle handle){
+  static std::shared_ptr<Connection> createShared(TLSHandle tlsHandle, data::v_io_handle handle){
     return libressl_Shared_Connection_Pool::allocateShared(tlsHandle, handle);
   }
   
   ~Connection();
   
-  Library::v_size write(const void *buff, Library::v_size count) override;
-  Library::v_size read(void *buff, Library::v_size count) override;
+  data::v_io_size write(const void *buff, data::v_io_size count) override;
+  data::v_io_size read(void *buff, data::v_io_size count) override;
   
   void close();
   
@@ -61,7 +60,7 @@ public:
     return m_tlsHandle;
   }
   
-  Library::v_handle getHandle() {
+  data::v_io_handle getHandle() {
     return m_handle;
   }
   
