@@ -45,7 +45,11 @@ public:
                                                           v_word16 port) {
     return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, host, port));
   }
-  
+
+  void close() override {
+    // DO NOTHING
+  }
+
   std::shared_ptr<IOStream> getConnection() override;
   Action getConnectionAsync(oatpp::async::AbstractCoroutine* parentCoroutine, AsyncCallback callback) override;
   

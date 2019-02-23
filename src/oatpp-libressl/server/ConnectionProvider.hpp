@@ -37,6 +37,7 @@ private:
   std::shared_ptr<Config> m_config;
   v_word16 m_port;
   bool m_nonBlocking;
+  bool m_closed;
   data::v_io_handle m_serverHandle;
   Connection::TLSHandle m_tlsServerHandle;
 private:
@@ -53,6 +54,8 @@ public:
   }
   
   ~ConnectionProvider();
+
+  void close() override;
   
   std::shared_ptr<IOStream> getConnection() override;
   

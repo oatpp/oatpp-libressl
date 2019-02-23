@@ -44,6 +44,7 @@ ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
   : m_config(config)
   , m_port(port)
   , m_nonBlocking(nonBlocking)
+  , m_closed(false)
 {
   
   setProperty(PROPERTY_HOST, "localhost");
@@ -63,9 +64,7 @@ ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
 }
 
 ConnectionProvider::~ConnectionProvider() {
-  tls_close(m_tlsServerHandle);
-  tls_free(m_tlsServerHandle);
-  ::close(m_serverHandle);
+  close();
 }
   
 data::v_io_handle ConnectionProvider::instantiateServer(){
@@ -127,6 +126,15 @@ Connection::TLSHandle ConnectionProvider::instantiateTLSServer() {
   
   return handle;
   
+}
+
+void ConnectionProvider::close() {
+  if(!m_closed) {
+    m_closed = true;
+    tls_close(m_tlsServerHandle);
+    tls_free(m_tlsServerHandle);
+    ::close(m_serverHandle);
+  }
 }
 
 std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection(){
