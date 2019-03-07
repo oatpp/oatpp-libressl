@@ -32,7 +32,7 @@
 
 namespace oatpp { namespace libressl { namespace server {
 
-class ConnectionProvider : public oatpp::base::Controllable, public oatpp::network::ServerConnectionProvider {
+class ConnectionProvider : public oatpp::base::Countable, public oatpp::network::ServerConnectionProvider {
 private:
   std::shared_ptr<Config> m_config;
   v_word16 m_port;

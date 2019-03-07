@@ -31,7 +31,7 @@
 
 namespace oatpp { namespace libressl { namespace client {
 
-class ConnectionProvider : public base::Controllable, public oatpp::network::ClientConnectionProvider {
+class ConnectionProvider : public base::Countable, public oatpp::network::ClientConnectionProvider {
 private:
   std::shared_ptr<Config> m_config;
   oatpp::String m_host;

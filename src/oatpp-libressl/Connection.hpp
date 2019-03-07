@@ -32,7 +32,7 @@
 
 namespace oatpp { namespace libressl {
     
-class Connection : public oatpp::base::Controllable, public oatpp::data::stream::IOStream {
+class Connection : public oatpp::base::Countable, public oatpp::data::stream::IOStream {
 public:
   typedef struct tls* TLSHandle;
 public:
