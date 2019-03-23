@@ -59,6 +59,12 @@ ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
                "consider setting custom locking_callback.");
   }
 }
+
+std::shared_ptr<ConnectionProvider> ConnectionProvider::createShared(const std::shared_ptr<Config>& config,
+                                                                     const oatpp::String& host,
+                                                                     v_word16 port) {
+  return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, host, port));
+}
   
 std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection(){
   

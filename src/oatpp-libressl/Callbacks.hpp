@@ -36,13 +36,13 @@ namespace oatpp { namespace libressl {
  */
 class Callbacks {
 private:
-  /**
-   * Atomics for lockingCallback
+  /*
+   * Atomics for lockingCallback;
    */
   static oatpp::concurrency::SpinLock::Atom* ATOMS;
 private:
-  /**
-   * Init atomics for lockingCallback
+  /*
+   * Init atomics for lockingCallback;
    */
   static oatpp::concurrency::SpinLock::Atom* createAtoms();
 public:
@@ -51,10 +51,15 @@ public:
    * Set default callbacks for libressl
    */
   static void setDefaultCallbacks();
-  
+
   /**
-   * oatpp-default implementation of lockingCallback passed to CRYPTO_set_locking_callback()
-   * must be set in case libressl is used in multithreaded environment
+   * Oatpp-default implementation of lockingCallback passed to CRYPTO_set_locking_callback().
+   * must be set in case libressl is used in multithreaded environment.
+   * Locking is done using &id:oatpp::concurrency::SpinLock;.
+   * @param mode
+   * @param n - index of the lock.
+   * @param file - file where lock is set.
+   * @param line - line where lock is set.
    */
   static void lockingCallback(int mode, int n, const char* file, int line);
   

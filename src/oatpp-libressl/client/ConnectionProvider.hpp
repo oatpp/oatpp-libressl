@@ -31,26 +31,55 @@
 
 namespace oatpp { namespace libressl { namespace client {
 
+/**
+ * Libressl client connection provider.
+ * Extends &id:oatpp::base::Countable;, &id:oatpp::network::ClientConnectionProvider;.
+ */
 class ConnectionProvider : public base::Countable, public oatpp::network::ClientConnectionProvider {
 private:
   std::shared_ptr<Config> m_config;
   oatpp::String m_host;
   v_word16 m_port;
 public:
+  /**
+   * Constructor.
+   * @param config - &id:oatpp::libressl::Config;.
+   * @param host - host name without schema and port. Ex.: "oatpp.io", "127.0.0.1", "localhost".
+   * @param port - server port.
+   */
   ConnectionProvider(const std::shared_ptr<Config>& config, const oatpp::String& host, v_word16 port);
 public:
-  
+
+  /**
+   * Create shared ConnectionProvider.
+   * @param config - &id:oatpp::libressl::Config;.
+   * @param host - host name without schema and port. Ex.: "oatpp.io", "127.0.0.1", "localhost".
+   * @param port - server port.
+   * @return - `std::shared_ptr` to ConnectionProvider.
+   */
   static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config,
                                                           const oatpp::String& host,
-                                                          v_word16 port) {
-    return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, host, port));
-  }
+                                                          v_word16 port);
 
+  /**
+   * Implements &id:oatpp::network::ConnectionProvider::close;. Here does nothing.
+   */
   void close() override {
     // DO NOTHING
   }
 
+  /**
+   * Get connection.
+   * @return - `std::shared_ptr` to &id:oatpp::data::stream::IOStream;.
+   */
   std::shared_ptr<IOStream> getConnection() override;
+
+  /**
+   * Get connection in asynchronous manner.
+   * @param parentCoroutine - caller coroutine as &id:oatpp::async::AbstractCoroutine;.
+   * @param callback - pointer to callback function.
+   * @return - &id:oatpp::async::Action;.
+   */
   Action getConnectionAsync(oatpp::async::AbstractCoroutine* parentCoroutine, AsyncCallback callback) override;
   
 };

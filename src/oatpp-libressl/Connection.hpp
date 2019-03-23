@@ -31,7 +31,10 @@
 #include <tls.h>
 
 namespace oatpp { namespace libressl {
-    
+
+/**
+ * TLS Connection implementation. Extends &id:oatpp::base::Countable; and &id:oatpp::data::stream::IOStream;.
+ */
 class Connection : public oatpp::base::Countable, public oatpp::data::stream::IOStream {
 public:
   typedef struct tls* TLSHandle;
@@ -42,24 +45,62 @@ private:
   TLSHandle m_tlsHandle;
   data::v_io_handle m_handle;
 public:
+  /**
+   * Constructor.
+   * @param tlsHandle - `tls*`.
+   * @param handle - connection handle (file descriptor). &id:oatpp::data::v_io_handle;.
+   */
   Connection(TLSHandle tlsHandle, data::v_io_handle handle);
 public:
-  
+
+  /**
+   * Create shared connection.
+   * @param tlsHandle - `tls*`.
+   * @param handle - connection handle (file descriptor). &id:oatpp::data::v_io_handle;.
+   * @return - `std::shared_ptr` to Connection.
+   */
   static std::shared_ptr<Connection> createShared(TLSHandle tlsHandle, data::v_io_handle handle){
     return libressl_Shared_Connection_Pool::allocateShared(tlsHandle, handle);
   }
-  
+
+  /**
+   * Virtual destructor.
+   */
   ~Connection();
-  
+
+  /**
+   * Implementation of &id:oatpp::data::stream::OutputStream::write; method.
+   * @param buff - data to write to stream.
+   * @param count - data size.
+   * @return - actual amount of bytes written.
+   */
   data::v_io_size write(const void *buff, data::v_io_size count) override;
+
+  /**
+   * Implementation of &id:oatpp::data::stream::InputStream::read; method.
+   * @param buff - buffer to read data to.
+   * @param count - buffer size.
+   * @return - actual amount of bytes read.
+   */
   data::v_io_size read(void *buff, data::v_io_size count) override;
-  
+
+  /**
+   * Close all handles.
+   */
   void close();
-  
+
+  /**
+   * Get TLS handle.
+   * @return - `tls*`.
+   */
   TLSHandle getTlsHandle() {
     return m_tlsHandle;
   }
-  
+
+  /**
+   * Get socket handle.
+   * @return - &id:oatpp::data::v_io_handle;.
+   */
   data::v_io_handle getHandle() {
     return m_handle;
   }
