@@ -63,6 +63,12 @@ ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
   m_tlsServerHandle = instantiateTLSServer();
 }
 
+std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config,
+                                                 v_word16 port,
+                                                 bool nonBlocking){
+  return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, port, nonBlocking));
+}
+
 ConnectionProvider::~ConnectionProvider() {
   close();
 }

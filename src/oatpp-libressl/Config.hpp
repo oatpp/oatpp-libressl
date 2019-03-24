@@ -31,32 +31,46 @@
 #include <memory>
 
 namespace oatpp { namespace libressl {
-  
+
+/**
+ * Wrapper over `tls_config`.
+ */
 class Config {
 public:
   typedef struct tls_config* TLSConfig;
 private:
   TLSConfig m_config;
 public:
-  Config()
-    : m_config(tls_config_new())
-  {}
+  /**
+   * Constructor.
+   */
+  Config();
 public:
-  
-  static std::shared_ptr<Config> createShared() {
-    return std::make_shared<Config>();
-  }
-  
-  static std::shared_ptr<Config> createDefaultServerConfig(const oatpp::String& keyFile,
-                                                           const oatpp::String& certFile);
-  
-  virtual ~Config(){
-    tls_config_free(m_config);
-  }
-  
-  TLSConfig getTLSConfig() {
-    return m_config;
-  }
+
+  /**
+   * Create shared Config.
+   * @return - `std::shared_ptr` to Config.
+   */
+  static std::shared_ptr<Config> createShared();
+
+  /**
+   * Create default config for server with enabled TLS.
+   * @param keyFile - path to file with private key.
+   * @param certFile - path to file with certificate.
+   * @return - `std::shared_ptr` to Config.
+   */
+  static std::shared_ptr<Config> createDefaultServerConfig(const oatpp::String& keyFile, const oatpp::String& certFile);
+
+  /**
+   * Virtual destructor.
+   */
+  virtual ~Config();
+
+  /**
+   * Get underlying tls_config.
+   * @return - `tls_config*`.
+   */
+  TLSConfig getTLSConfig();
   
 };
   

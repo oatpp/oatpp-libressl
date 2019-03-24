@@ -25,7 +25,15 @@
 #include "Config.hpp"
 
 namespace oatpp { namespace libressl {
-  
+
+Config::Config()
+  : m_config(tls_config_new())
+{}
+
+std::shared_ptr<Config> Config::createShared() {
+  return std::make_shared<Config>();
+}
+
 std::shared_ptr<Config> Config::createDefaultServerConfig(const oatpp::String& keyFile,
                                                           const oatpp::String& certFile) {
   
@@ -50,6 +58,14 @@ std::shared_ptr<Config> Config::createDefaultServerConfig(const oatpp::String& k
   
   return config;
   
+}
+
+Config::~Config(){
+  tls_config_free(m_config);
+}
+
+Config::TLSConfig Config::getTLSConfig() {
+  return m_config;
 }
   
 }}

@@ -32,6 +32,10 @@
 
 namespace oatpp { namespace libressl { namespace server {
 
+/**
+ * Libressl server connection provider.
+ * Extends &id:oatpp::base::Countable;, &id:oatpp::network::ServerConnectionProvider;.
+ */
 class ConnectionProvider : public oatpp::base::Countable, public oatpp::network::ServerConnectionProvider {
 private:
   std::shared_ptr<Config> m_config;
@@ -44,24 +48,55 @@ private:
   data::v_io_handle instantiateServer();
   Connection::TLSHandle instantiateTLSServer();
 public:
+  /**
+   * Constructor.
+   * @param config - &id:oatpp::libressl::Config;.
+   * @param port - port to listen on.
+   * @param nonBlocking - set `true` to provide non-blocking &id:oatpp::data::stream::IOStream; for connection.
+   * `false` for blocking &id:oatpp::data::stream::IOStream;. Default `false`.
+   */
   ConnectionProvider(const std::shared_ptr<Config>& config, v_word16 port, bool nonBlocking = false);
 public:
-  
+
+  /**
+   * Create shared ConnectionProvider.
+   * @param config - &id:oatpp::libressl::Config;.
+   * @param port - port to listen on.
+   * @param nonBlocking - set `true` to provide non-blocking &id:oatpp::data::stream::IOStream; for connection.
+   * `false` for blocking &id:oatpp::data::stream::IOStream;. Default `false`.
+   * @return `std::shared_ptr` to ConnectionProvider.
+   */
   static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config,
                                                           v_word16 port,
-                                                          bool nonBlocking = false){
-    return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, port, nonBlocking));
-  }
-  
+                                                          bool nonBlocking = false);
+
+  /**
+   * Virtual destructor.
+   */
   ~ConnectionProvider();
 
+  /**
+   * Close all handles.
+   */
   void close() override;
-  
+
+  /**
+   * Get incoming connection.
+   * @return &id:oatpp::data::stream::IOStream;.
+   */
   std::shared_ptr<IOStream> getConnection() override;
-  
+
+  /**
+   * No need to implement this.<br>
+   * For Asynchronous IO in oatpp it is considered to be a good practice
+   * to accept connections in a seperate thread with the blocking accept()
+   * and then process connections in Asynchronous manner with non-blocking read/write.
+   * <br>
+   * *It may be implemented later*
+   */
   Action getConnectionAsync(oatpp::async::AbstractCoroutine* parentCoroutine,
                             AsyncCallback callback) override {
-    /**
+    /*
      *  No need to implement this.
      *  For Asynchronous IO in oatpp it is considered to be a good practice
      *  to accept connections in a seperate thread with the blocking accept()
