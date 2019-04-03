@@ -118,10 +118,9 @@ std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection
   
 }
 
-oatpp::async::Action ConnectionProvider::getConnectionAsync(oatpp::async::AbstractCoroutine* parentCoroutine,
-                                                            AsyncCallback callback) {
+oatpp::async::CoroutineCallForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> ConnectionProvider::getConnectionAsync() {
   
-  class ConnectCoroutine : public oatpp::async::CoroutineWithResult<ConnectCoroutine, std::shared_ptr<oatpp::data::stream::IOStream>> {
+  class ConnectCoroutine : public oatpp::async::CoroutineWithResult<ConnectCoroutine, const std::shared_ptr<oatpp::data::stream::IOStream>&> {
   private:
     oatpp::String m_host;
     v_int32 m_port;
@@ -152,7 +151,7 @@ oatpp::async::Action ConnectionProvider::getConnectionAsync(oatpp::async::Abstra
       struct hostent* host = gethostbyname((const char*) m_host->getData());
       
       if ((host == NULL) || (host->h_addr == NULL)) {
-        return error("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::act()}]: Error retrieving DNS information.");
+        return error<Error>("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::act()}]: Error retrieving DNS information.");
       }
       
       bzero(&m_client, sizeof(m_client));
@@ -163,7 +162,7 @@ oatpp::async::Action ConnectionProvider::getConnectionAsync(oatpp::async::Abstra
       m_clientHandle = socket(AF_INET, SOCK_STREAM, 0);
       
       if (m_clientHandle < 0) {
-        return error("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::act()}]: Error creating socket.");
+        return error<Error>("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::act()}]: Error creating socket.");
       }
       
       fcntl(m_clientHandle, F_SETFL, O_NONBLOCK);
@@ -197,7 +196,7 @@ oatpp::async::Action ConnectionProvider::getConnectionAsync(oatpp::async::Abstra
         return repeat();
       }
       ::close(m_clientHandle);
-      return error("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::doConnect()}]: Can't connect");
+      return error<Error>("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::doConnect()}]: Can't connect");
     }
     
     Action secureConnection() {
@@ -207,7 +206,7 @@ oatpp::async::Action ConnectionProvider::getConnectionAsync(oatpp::async::Abstra
         tls_close(m_tlsHandle);
         tls_free(m_tlsHandle);
         ::close(m_clientHandle);
-        return error("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::secureConnection()}]: Can't secure connect");
+        return error<Error>("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::secureConnection()}]: Can't secure connect");
       }
       auto connection = Connection::createShared(m_tlsHandle, m_clientHandle);
       m_tlsHandle = nullptr; // prevent m_tlsHandle to be freed by Coroutine
@@ -217,7 +216,7 @@ oatpp::async::Action ConnectionProvider::getConnectionAsync(oatpp::async::Abstra
     
   };
   
-  return parentCoroutine->startCoroutineForResult<ConnectCoroutine>(callback, m_host, m_port, m_config);
+  return ConnectCoroutine::callForResult(m_host, m_port, m_config);
   
 }
   
