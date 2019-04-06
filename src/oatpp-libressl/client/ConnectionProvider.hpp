@@ -6,7 +6,7 @@
  *                (_____)(__)(__)(__)  |_|    |_|
  *
  *
- * Copyright 2018-present, Leonid Stryzhevskyi, <lganzzzo@gmail.com>
+ * Copyright 2018-present, Leonid Stryzhevskyi <lganzzzo@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,9 +76,9 @@ public:
 
   /**
    * Get connection in asynchronous manner.
-   * @return - &id:oatpp::async::CoroutineCallForResult;.
+   * @return - &id:oatpp::async::CoroutineStarterForResult;.
    */
-  oatpp::async::CoroutineCallForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> getConnectionAsync() override;
+  oatpp::async::CoroutineStarterForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> getConnectionAsync() override;
   
 };
   

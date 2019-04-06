@@ -6,7 +6,7 @@
  *                (_____)(__)(__)(__)  |_|    |_|
  *
  *
- * Copyright 2018-present, Leonid Stryzhevskyi, <lganzzzo@gmail.com>
+ * Copyright 2018-present, Leonid Stryzhevskyi <lganzzzo@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ public:
    * <br>
    * *It may be implemented later*
    */
-  oatpp::async::CoroutineCallForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> getConnectionAsync() override {
+  oatpp::async::CoroutineStarterForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> getConnectionAsync() override {
     /*
      *  No need to implement this.
      *  For Asynchronous IO in oatpp it is considered to be a good practice

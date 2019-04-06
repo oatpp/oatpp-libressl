@@ -6,7 +6,7 @@
  *                (_____)(__)(__)(__)  |_|    |_|
  *
  *
- * Copyright 2018-present, Leonid Stryzhevskyi, <lganzzzo@gmail.com>
+ * Copyright 2018-present, Leonid Stryzhevskyi <lganzzzo@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -118,7 +118,7 @@ std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection
   
 }
 
-oatpp::async::CoroutineCallForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> ConnectionProvider::getConnectionAsync() {
+oatpp::async::CoroutineStarterForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> ConnectionProvider::getConnectionAsync() {
   
   class ConnectCoroutine : public oatpp::async::CoroutineWithResult<ConnectCoroutine, const std::shared_ptr<oatpp::data::stream::IOStream>&> {
   private:
@@ -216,7 +216,7 @@ oatpp::async::CoroutineCallForResult<const std::shared_ptr<oatpp::data::stream::
     
   };
   
-  return ConnectCoroutine::callForResult(m_host, m_port, m_config);
+  return ConnectCoroutine::startForResult(m_host, m_port, m_config);
   
 }
   
