@@ -119,87 +119,126 @@ std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection
 }
 
 oatpp::async::CoroutineStarterForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> ConnectionProvider::getConnectionAsync() {
-  
+
   class ConnectCoroutine : public oatpp::async::CoroutineWithResult<ConnectCoroutine, const std::shared_ptr<oatpp::data::stream::IOStream>&> {
   private:
     oatpp::String m_host;
     v_int32 m_port;
     std::shared_ptr<Config> m_config;
     Connection::TLSHandle m_tlsHandle;
-    data::v_io_handle m_clientHandle;
-    struct sockaddr_in m_client;
+    oatpp::data::v_io_handle m_clientHandle;
+  private:
+    struct addrinfo* m_result;
+    struct addrinfo* m_currentResult;
   public:
-    
-    ConnectCoroutine(const oatpp::String& host,
-                     v_int32 port,
-                     const std::shared_ptr<Config>& config)
+
+    ConnectCoroutine(const oatpp::String& host, v_int32 port, const std::shared_ptr<Config>& config)
       : m_host(host)
       , m_port(port)
       , m_config(config)
       , m_tlsHandle(nullptr)
+      , m_result(nullptr)
     {}
-    
+
     ~ConnectCoroutine() {
+
       if(m_tlsHandle != nullptr) {
         tls_close(m_tlsHandle);
         tls_free(m_tlsHandle);
       }
+
+      if(m_result != nullptr) {
+        freeaddrinfo(m_result);
+      }
+
     }
-    
+
     Action act() override {
-      
-      struct hostent* host = gethostbyname((const char*) m_host->getData());
-      
-      if ((host == NULL) || (host->h_addr == NULL)) {
-        return error<Error>("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::act()}]: Error retrieving DNS information.");
+
+      auto portStr = oatpp::utils::conversion::int32ToStr(m_port);
+
+      struct addrinfo hints;
+
+      memset(&hints, 0, sizeof(struct addrinfo));
+      hints.ai_family = AF_UNSPEC;
+      hints.ai_socktype = SOCK_STREAM;
+      hints.ai_flags = 0;
+      hints.ai_protocol = 0;
+
+      // TODO make call to get addrinfo non-blocking !!!
+      auto res = getaddrinfo(m_host->c_str(), portStr->c_str(), &hints, &m_result);
+      if (res != 0) {
+        return error<async::Error>(
+          "[oatpp::network::client::SimpleTCPConnectionProvider::getConnectionAsync()]. Error. Call to getaddrinfo() faild.");
       }
-      
-      bzero(&m_client, sizeof(m_client));
-      m_client.sin_family = AF_INET;
-      m_client.sin_port = htons(m_port);
-      memcpy(&m_client.sin_addr, host->h_addr, host->h_length);
-      
-      m_clientHandle = socket(AF_INET, SOCK_STREAM, 0);
-      
-      if (m_clientHandle < 0) {
-        return error<Error>("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::act()}]: Error creating socket.");
+
+      m_currentResult = m_result;
+
+      if (m_result == nullptr) {
+        return error<async::Error>(
+          "[oatpp::network::client::SimpleTCPConnectionProvider::getConnectionAsync()]. Error. Call to getaddrinfo() returned no results.");
       }
-      
-      fcntl(m_clientHandle, F_SETFL, O_NONBLOCK);
-      
-#ifdef SO_NOSIGPIPE
-      int yes = 1;
-      v_int32 ret = setsockopt(m_clientHandle, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(int));
-      if(ret < 0) {
-        OATPP_LOGD("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::act()}]", "Warning failed to set %s for socket", "SO_NOSIGPIPE");
-      }
-#endif
-      
-      return yieldTo(&ConnectCoroutine::doConnect);
-      
+
+      return yieldTo(&ConnectCoroutine::iterateAddrInfoResults);
+
     }
-    
-    Action doConnect() {
-      errno = 0;
-      auto res = connect(m_clientHandle, (struct sockaddr *)&m_client, sizeof(m_client));
-      if(res == 0 || errno == EISCONN) {
-        //return _return(Connection::createShared(m_clientHandle));
-        if(m_tlsHandle == nullptr) {
-          m_tlsHandle = tls_client();
+
+
+    Action iterateAddrInfoResults() {
+
+      if(m_currentResult != nullptr) {
+
+        m_clientHandle = socket(m_currentResult->ai_family, m_currentResult->ai_socktype, m_currentResult->ai_protocol);
+
+        if (m_clientHandle < 0) {
+          m_currentResult = m_currentResult->ai_next;
+          return repeat();
         }
-        tls_configure(m_tlsHandle, m_config->getTLSConfig());
+
+        fcntl(m_clientHandle, F_SETFL, O_NONBLOCK);
+
+#ifdef SO_NOSIGPIPE
+        int yes = 1;
+        v_int32 ret = setsockopt(m_clientHandle, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(int));
+        if(ret < 0) {
+          OATPP_LOGD("[oatpp::network::client::SimpleTCPConnectionProvider::getConnectionAsync()]", "Warning. Failed to set %s for socket", "SO_NOSIGPIPE");
+        }
+#endif
+        return yieldTo(&ConnectCoroutine::doConnect);
+      }
+
+      return error<Error>("[oatpp::network::client::SimpleTCPConnectionProvider::getConnectionAsync()]: Error. Can't connect.");
+
+    }
+
+    Action doConnect() {
+
+      errno = 0;
+
+      auto res = connect(m_clientHandle, m_currentResult->ai_addr, m_currentResult->ai_addrlen);
+      if(res == 0 || errno == EISCONN) {
         return yieldTo(&ConnectCoroutine::secureConnection);
       }
       if(errno == EALREADY || errno == EINPROGRESS) {
-        return waitRetry();
+        return ioWait(m_clientHandle, oatpp::async::Action::IOEventType::IO_EVENT_WRITE);
       } else if(errno == EINTR) {
-        return repeat();
+        return ioRepeat(m_clientHandle, oatpp::async::Action::IOEventType::IO_EVENT_WRITE);
       }
+
       ::close(m_clientHandle);
-      return error<Error>("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::doConnect()}]: Can't connect");
+      m_currentResult = m_currentResult->ai_next;
+
+      return yieldTo(&ConnectCoroutine::iterateAddrInfoResults);
+
     }
-    
+
     Action secureConnection() {
+
+      if(m_tlsHandle == nullptr) {
+        m_tlsHandle = tls_client();
+      }
+      tls_configure(m_tlsHandle, m_config->getTLSConfig());
+
       auto res = tls_connect_socket(m_tlsHandle, m_clientHandle, (const char*) m_host->getData());
       if(res < 0) {
         OATPP_LOGD("[oatpp::libressl::client::ConnectionProvider::getConnectionAsync(){ConnectCoroutine::secureConnection()}]", "TLS could not connect. %s, %d", tls_error(m_tlsHandle), res);
@@ -211,9 +250,9 @@ oatpp::async::CoroutineStarterForResult<const std::shared_ptr<oatpp::data::strea
       auto connection = Connection::createShared(m_tlsHandle, m_clientHandle);
       m_tlsHandle = nullptr; // prevent m_tlsHandle to be freed by Coroutine
       return _return(connection);
-      
+
     }
-    
+
   };
   
   return ConnectCoroutine::startForResult(m_host, m_port, m_config);

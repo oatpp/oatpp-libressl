@@ -28,25 +28,21 @@
 
 namespace oatpp { namespace libressl {
 
-oatpp::concurrency::SpinLock::Atom* Callbacks::ATOMS = Callbacks::createAtoms();
+oatpp::concurrency::SpinLock* Callbacks::LOCKS = Callbacks::createLocks();
   
 void Callbacks::setDefaultCallbacks() {
   CRYPTO_set_locking_callback(Callbacks::lockingCallback);
 }
   
-oatpp::concurrency::SpinLock::Atom* Callbacks::createAtoms() {
-  oatpp::concurrency::SpinLock::Atom* atoms = new oatpp::concurrency::SpinLock::Atom[CRYPTO_num_locks()];
-  for(v_int32 i = 0; i < CRYPTO_num_locks(); i ++) {
-    atoms[i] = false;
-  }
-  return atoms;
+oatpp::concurrency::SpinLock* Callbacks::createLocks() {
+  return new oatpp::concurrency::SpinLock[CRYPTO_num_locks()];
 }
   
 void Callbacks::lockingCallback(int mode, int n, const char* file, int line) {
   if (mode & CRYPTO_LOCK) {
-    oatpp::concurrency::SpinLock::lock(ATOMS[n]);
+    LOCKS[n].lock();
   } else {
-    oatpp::concurrency::SpinLock::unlock(ATOMS[n]);
+    LOCKS[n].unlock();
   }
 }
   
