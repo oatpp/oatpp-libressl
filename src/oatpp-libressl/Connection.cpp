@@ -40,7 +40,7 @@ Connection::~Connection(){
   tls_free(m_tlsHandle);
 }
 
-data::v_io_size Connection::write(const void *buff, data::v_io_size count){
+data::v_io_size Connection::write(const void *buff, v_buff_size count){
   auto result = tls_write(m_tlsHandle, buff, count);
   if(result < 0) {
     if (result == TLS_WANT_POLLIN || result == TLS_WANT_POLLOUT) {
@@ -54,7 +54,7 @@ data::v_io_size Connection::write(const void *buff, data::v_io_size count){
   return result;
 }
 
-data::v_io_size Connection::read(void *buff, data::v_io_size count){
+data::v_io_size Connection::read(void *buff, v_buff_size count){
   auto result = tls_read(m_tlsHandle, buff, count);
   if(result < 0) {
     if (result == TLS_WANT_POLLIN || result == TLS_WANT_POLLOUT) {
