@@ -71,47 +71,68 @@ std::shared_ptr<ConnectionProvider> ConnectionProvider::createShared(const std::
 }
   
 std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection(){
-  
-  struct hostent* host = gethostbyname((const char*) m_host->getData());
-  struct sockaddr_in client;
-  
-  if ((host == NULL) || (host->h_addr == NULL)) {
-    OATPP_LOGD("[oatpp::libressl::client::ConnectionProvider::getConnection()]", "Error retrieving DNS information.");
-    return nullptr;
+
+  auto portStr = oatpp::utils::conversion::int32ToStr(m_port);
+
+  struct addrinfo hints;
+
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = 0;
+  hints.ai_protocol = 0;
+
+  struct addrinfo* result;
+  auto res = getaddrinfo(m_host->c_str(), portStr->c_str(), &hints, &result);
+
+  if (res != 0) {
+    throw std::runtime_error("[oatpp::network::client::SimpleTCPConnectionProvider::getConnection()]. Error. Call to getaddrinfo() faild.");
   }
-  
-  bzero(&client, sizeof(client));
-  client.sin_family = AF_INET;
-  client.sin_port = htons(m_port);
-  memcpy(&client.sin_addr, host->h_addr, host->h_length);
-  
-  data::v_io_handle clientHandle = socket(AF_INET, SOCK_STREAM, 0);
-  
-  if (clientHandle < 0) {
-    OATPP_LOGD("[oatpp::libressl::client::ConnectionProvider::getConnection()]", "Error creating socket.");
-    return nullptr;
+
+  if (result == nullptr) {
+    throw std::runtime_error("[oatpp::network::client::SimpleTCPConnectionProvider::getConnection()]. Error. Call to getaddrinfo() returned no results.");
   }
-  
+
+  struct addrinfo* currResult = result;
+  oatpp::data::v_io_handle clientHandle =- 1;
+
+  while(currResult != nullptr) {
+
+    clientHandle = socket(currResult->ai_family, currResult->ai_socktype, currResult->ai_protocol);
+
+    if(clientHandle >= 0) {
+
+      if(connect(clientHandle, currResult->ai_addr, (int)currResult->ai_addrlen) == 0) {
+        break;
+      } else {
+#if defined(WIN32) || defined(_WIN32)
+        ::closesocket(clientHandle);
+#else
+        ::close(clientHandle);
+#endif
+      }
+
+    }
+
+    currResult = currResult->ai_next;
+
+  }
+
+  freeaddrinfo(result);
+
+  if(currResult == nullptr) {
+    throw std::runtime_error("[oatpp::network::client::SimpleTCPConnectionProvider::getConnection()]: Error. Can't connect.");
+  }
+
 #ifdef SO_NOSIGPIPE
   int yes = 1;
   v_int32 ret = setsockopt(clientHandle, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(int));
   if(ret < 0) {
-    OATPP_LOGD("[oatpp::libressl::client::ConnectionProvider::getConnection()]", "Warning failed to set %s for socket", "SO_NOSIGPIPE");
+    OATPP_LOGD("[oatpp::network::client::SimpleTCPConnectionProvider::getConnection()]", "Warning. Failed to set %s for socket", "SO_NOSIGPIPE");
   }
 #endif
-  
-  if (connect(clientHandle, (struct sockaddr *)&client, sizeof(client)) != 0 ) {
-#if defined(WIN32) || defined(_WIN32)
-    ::closesocket(clientHandle);
-#else
-    ::close(clientHandle);
-#endif
-    OATPP_LOGD("[oatpp::libressl::client::ConnectionProvider::getConnection()]", "Could not connect");
-    return nullptr;
-  }
-  
+
   Connection::TLSHandle tlsHandle = tls_client();
-  
   tls_configure(tlsHandle, m_config->getTLSConfig());
   
   if(tls_connect_socket(tlsHandle, clientHandle, (const char*) m_host->getData()) < 0) {
