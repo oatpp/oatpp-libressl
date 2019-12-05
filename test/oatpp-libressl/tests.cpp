@@ -32,7 +32,7 @@ public:
     auto clientConnectionProvider = oatpp::libressl::client::ConnectionProvider(config, "localhost", 8000);
 
   }
-  
+
 };
 
 void runTests() {
