@@ -40,7 +40,6 @@ class ConnectionProvider : public oatpp::base::Countable, public oatpp::network:
 private:
   std::shared_ptr<Config> m_config;
   v_word16 m_port;
-  bool m_nonBlocking;
   bool m_closed;
   data::v_io_handle m_serverHandle;
   Connection::TLSHandle m_tlsServerHandle;
@@ -52,23 +51,17 @@ public:
    * Constructor.
    * @param config - &id:oatpp::libressl::Config;.
    * @param port - port to listen on.
-   * @param nonBlocking - set `true` to provide non-blocking &id:oatpp::data::stream::IOStream; for connection.
-   * `false` for blocking &id:oatpp::data::stream::IOStream;. Default `false`.
    */
-  ConnectionProvider(const std::shared_ptr<Config>& config, v_word16 port, bool nonBlocking = false);
+  ConnectionProvider(const std::shared_ptr<Config>& config, v_word16 port);
 public:
 
   /**
    * Create shared ConnectionProvider.
    * @param config - &id:oatpp::libressl::Config;.
    * @param port - port to listen on.
-   * @param nonBlocking - set `true` to provide non-blocking &id:oatpp::data::stream::IOStream; for connection.
-   * `false` for blocking &id:oatpp::data::stream::IOStream;. Default `false`.
    * @return `std::shared_ptr` to ConnectionProvider.
    */
-  static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config,
-                                                          v_word16 port,
-                                                          bool nonBlocking = false);
+  static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config, v_word16 port);
 
   /**
    * Virtual destructor.

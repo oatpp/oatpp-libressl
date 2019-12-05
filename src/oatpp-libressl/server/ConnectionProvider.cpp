@@ -43,12 +43,9 @@
 
 namespace oatpp { namespace libressl { namespace server {
   
-ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
-                                       v_word16 port,
-                                       bool nonBlocking)
+ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config, v_word16 port)
   : m_config(config)
   , m_port(port)
-  , m_nonBlocking(nonBlocking)
   , m_closed(false)
 {
   
@@ -68,10 +65,8 @@ ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
   m_tlsServerHandle = instantiateTLSServer();
 }
 
-std::shared_ptr<ConnectionProvider> ConnectionProvider::createShared(const std::shared_ptr<Config>& config,
-                                                                     v_word16 port,
-                                                                     bool nonBlocking){
-  return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, port, nonBlocking));
+std::shared_ptr<ConnectionProvider> ConnectionProvider::createShared(const std::shared_ptr<Config>& config, v_word16 port){
+  return std::shared_ptr<ConnectionProvider>(new ConnectionProvider(config, port));
 }
 
 ConnectionProvider::~ConnectionProvider() {
@@ -211,33 +206,28 @@ void ConnectionProvider::close() {
 }
 
 std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection(){
-  
-  data::v_io_handle handle = accept(m_serverHandle, nullptr, nullptr);
-  
+
+  oatpp::data::v_io_handle handle = accept(m_serverHandle, nullptr, nullptr);
+
   if (handle < 0) {
     v_int32 error = errno;
     if(error == EAGAIN || error == EWOULDBLOCK){
       return nullptr;
     } else {
-      OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::getConnection()]", "Error: %d", error);
+      if(!m_closed) { // m_serverHandle==0 if ConnectionProvider was closed. Not an error.
+        OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::getConnection()]", "Error: %d", error);
+      }
       return nullptr;
     }
   }
-  
+
 #ifdef SO_NOSIGPIPE
   int yes = 1;
   v_int32 ret = setsockopt(handle, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(int));
   if(ret < 0) {
-    OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::getConnection()]", "Warning failed to set %s for socket", "SO_NOSIGPIPE");
+    OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::getConnection()]", "Warning. Failed to set %s for socket", "SO_NOSIGPIPE");
   }
 #endif
-  
-  int flags = 0;
-  if(m_nonBlocking) {
-    flags |= O_NONBLOCK;
-  }
-  
-  fcntl(handle, F_SETFL, flags);
   
   Connection::TLSHandle tlsHandle;
   
