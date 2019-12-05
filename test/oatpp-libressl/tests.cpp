@@ -1,6 +1,8 @@
 
 #include "oatpp-test/UnitTest.hpp"
 
+#include "oatpp-libressl/client/ConnectionProvider.hpp"
+#include "oatpp-libressl/server/ConnectionProvider.hpp"
 #include "oatpp-libressl/Callbacks.hpp"
 
 #include "oatpp/core/concurrency/SpinLock.hpp"
@@ -16,8 +18,21 @@ public:
   {}
 
   void onRun() override {
-    // TODO write correct  tests
+
+    // TODO - create meaningful tests !!!
+
+    auto config = oatpp::libressl::Config::createShared();
+
+    try {
+      auto serverConnectionProvider = oatpp::libressl::server::ConnectionProvider::createShared(config, 8000);
+    } catch(...) {
+
+    }
+
+    auto clientConnectionProvider = oatpp::libressl::client::ConnectionProvider(config, "localhost", 8000);
+
   }
+  
 };
 
 void runTests() {

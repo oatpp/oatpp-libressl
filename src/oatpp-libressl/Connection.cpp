@@ -24,7 +24,13 @@
 
 #include "Connection.hpp"
 
-#include <unistd.h>
+#if defined(WIN32) || defined(_WIN32)
+  #include <io.h>
+  #include <WinSock2.h>
+#else
+  #include <unistd.h>
+#endif
+
 #include <fcntl.h>
 
 namespace oatpp { namespace libressl {
@@ -68,11 +74,36 @@ data::v_io_size Connection::read(void *buff, v_buff_size count){
   return result;
 }
 
+#if defined(WIN32) || defined(_WIN32)
+void Connection::setStreamIOMode(oatpp::data::stream::IOMode ioMode) {
+
+  u_long flags;
+
+  switch(ioMode) {
+
+    case data::stream::BLOCKING:
+        flags = 0;
+        if(NO_ERROR != ioctlsocket(m_handle, FIONBIO, &flags)) {
+            throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::BLOCKING.");
+        }
+        m_mode = data::stream::BLOCKING;
+        break;
+    case data::stream::NON_BLOCKING:
+        flags = 1;
+        if(NO_ERROR != ioctlsocket(m_handle, FIONBIO, &flags)) {
+            throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::NON_BLOCKING.");
+        }
+        m_mode = data::stream::NON_BLOCKING;
+        break;
+  }
+
+}
+#else
 void Connection::setStreamIOMode(oatpp::data::stream::IOMode ioMode) {
 
   auto flags = fcntl(m_handle, F_GETFL);
   if (flags < 0) {
-    throw std::runtime_error("[oatpp::network::Connection::setStreamIOMode()]: Error. Can't get socket flags.");
+    throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't get socket flags.");
   }
 
   switch(ioMode) {
@@ -80,25 +111,32 @@ void Connection::setStreamIOMode(oatpp::data::stream::IOMode ioMode) {
     case oatpp::data::stream::IOMode::BLOCKING:
       flags = flags & (~O_NONBLOCK);
       if (fcntl(m_handle, F_SETFL, flags) < 0) {
-        throw std::runtime_error("[oatpp::network::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::BLOCKING.");
+        throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::BLOCKING.");
       }
       break;
 
     case oatpp::data::stream::IOMode::NON_BLOCKING:
       flags = (flags | O_NONBLOCK);
       if (fcntl(m_handle, F_SETFL, flags) < 0) {
-        throw std::runtime_error("[oatpp::network::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::NON_BLOCKING.");
+        throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::NON_BLOCKING.");
       }
       break;
 
   }
 }
+#endif
 
+
+#if defined(WIN32) || defined(_WIN32)
+oatpp::data::stream::IOMode Connection::getStreamIOMode() {
+  return m_mode;
+}
+#else
 oatpp::data::stream::IOMode Connection::getStreamIOMode() {
 
   auto flags = fcntl(m_handle, F_GETFL);
   if (flags < 0) {
-    throw std::runtime_error("[oatpp::network::Connection::getStreamIOMode()]: Error. Can't get socket flags.");
+    throw std::runtime_error("[oatpp::libressl::Connection::getStreamIOMode()]: Error. Can't get socket flags.");
   }
 
   if((flags & O_NONBLOCK) > 0) {
@@ -108,6 +146,7 @@ oatpp::data::stream::IOMode Connection::getStreamIOMode() {
   return oatpp::data::stream::IOMode::BLOCKING;
 
 }
+#endif
 
 oatpp::async::Action Connection::suggestOutputStreamAction(data::v_io_size ioResult) {
 
@@ -122,7 +161,7 @@ oatpp::async::Action Connection::suggestOutputStreamAction(data::v_io_size ioRes
       return oatpp::async::Action::createIORepeatAction(m_handle, oatpp::async::Action::IOEventType::IO_EVENT_WRITE);
   }
 
-  throw std::runtime_error("[oatpp::network::virtual_::Pipe::Reader::suggestInputStreamAction()]: Error. Unable to suggest async action for I/O result.");
+  throw std::runtime_error("[oatpp::libressl::Connection::suggestInputStreamAction()]: Error. Unable to suggest async action for I/O result.");
 
 }
 
@@ -139,7 +178,7 @@ oatpp::async::Action Connection::suggestInputStreamAction(data::v_io_size ioResu
       return oatpp::async::Action::createIORepeatAction(m_handle, oatpp::async::Action::IOEventType::IO_EVENT_READ);
   }
 
-  throw std::runtime_error("[oatpp::network::virtual_::Pipe::Reader::suggestInputStreamAction()]: Error. Unable to suggest async action for I/O result.");
+  throw std::runtime_error("[oatpp::libressl::Connection::suggestInputStreamAction()]: Error. Unable to suggest async action for I/O result.");
 
 
 }
@@ -163,7 +202,11 @@ oatpp::data::stream::IOMode Connection::getInputStreamIOMode() {
 
 void Connection::close(){
   tls_close(m_tlsHandle);
+#if defined(WIN32) || defined(_WIN32)
+  ::closesocket(m_handle);
+#else
   ::close(m_handle);
+#endif
 }
   
 }}
