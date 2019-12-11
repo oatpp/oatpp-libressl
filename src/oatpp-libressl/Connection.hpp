@@ -44,6 +44,9 @@ public:
 private:
   TLSHandle m_tlsHandle;
   data::v_io_handle m_handle;
+#if defined(WIN32) || defined(_WIN32)
+  oatpp::data::stream::IOMode m_mode;
+#endif
 private:
   void setStreamIOMode(oatpp::data::stream::IOMode ioMode);
   oatpp::data::stream::IOMode getStreamIOMode();
