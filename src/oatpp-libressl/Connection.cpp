@@ -24,26 +24,237 @@
 
 #include "Connection.hpp"
 
-#if defined(WIN32) || defined(_WIN32)
-  #include <io.h>
-  #include <WinSock2.h>
-#else
-  #include <unistd.h>
-#endif
-
-#include <fcntl.h>
-
 namespace oatpp { namespace libressl {
-  
-Connection::Connection(TLSHandle tlsHandle, data::v_io_handle handle)
-  : m_tlsHandle(tlsHandle)
-  , m_handle(handle)
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ConnectionContext
+
+Connection::ConnectionContext::ConnectionContext(Connection* connection, data::stream::StreamType streamType, Properties&& properties)
+  : Context(std::forward<Properties>(properties))
+  , m_connection(connection)
+  , m_streamType(streamType)
+{}
+
+void Connection::ConnectionContext::init() {
+
+  if(!m_connection->m_initialized) {
+
+    m_connection->m_initialized = true;
+
+    auto tlsObject = m_connection->m_tlsObject;
+
+    if (tlsObject->getType() == TLSObject::Type::SERVER) {
+
+      auto res = tls_accept_cbs(tlsObject->getTLSHandle(), &m_connection->m_tlsHandle, readCallback, writeCallback, m_connection->m_stream.get());
+
+      if (res < 0) {
+        OATPP_LOGD("[oatpp::libressl::Connection::ConnectionContext::init()]", "Error on call to 'tls_accept_cbs'. res=%d", res);
+      }
+
+    } else if (tlsObject->getType() == TLSObject::Type::CLIENT) {
+
+      m_connection->m_tlsHandle = tlsObject->getTLSHandle();
+      const char* host = nullptr;
+      if(tlsObject->getServerName()) {
+        host = (const char*) tlsObject->getServerName()->getData();
+      }
+      auto res = tls_connect_cbs(m_connection->m_tlsHandle,
+                                 readCallback, writeCallback,
+                                 m_connection->m_stream.get(), host);
+
+      tlsObject->annul();
+
+      if (res < 0) {
+        OATPP_LOGD("[oatpp::libressl::Connection::ConnectionContext::init()]", "Error on call to 'tls_connect_cbs'. res=%d", res);
+      }
+
+    } else {
+      throw std::runtime_error("[oatpp::libressl::Connection::ConnectionContext::init()]: Error. Unknown TLSObject type.");
+    }
+
+  }
+
+}
+
+async::CoroutineStarter Connection::ConnectionContext::initAsync() {
+
+  class HandshakeCoroutine : public oatpp::async::Coroutine<HandshakeCoroutine> {
+  private:
+    Connection* m_connection;
+  public:
+
+    HandshakeCoroutine(Connection* connection)
+      : m_connection(connection)
+    {}
+
+    Action act() override {
+
+      if(m_connection->m_initialized) {
+        return finish();
+      }
+
+      auto tlsObject = m_connection->m_tlsObject;
+
+      if (tlsObject->getType() == TLSObject::Type::SERVER) {
+        return yieldTo(&HandshakeCoroutine::initServer);
+      } else if (tlsObject->getType() == TLSObject::Type::CLIENT) {
+        return yieldTo(&HandshakeCoroutine::initClient);
+      }
+
+      throw std::runtime_error("[oatpp::libressl::Connection::ConnectionContext::init()]: Error. Unknown TLSObject type.");
+
+    }
+
+    Action initServer() {
+
+      auto tlsObject = m_connection->m_tlsObject;
+      auto res = tls_accept_cbs(tlsObject->getTLSHandle(), &m_connection->m_tlsHandle, readCallback, writeCallback, m_connection->m_stream.get());
+
+      switch(res) {
+
+        case TLS_WANT_POLLIN:
+          /* reschedule to EventIOWorker */
+          return m_connection->suggestInputStreamAction(oatpp::data::IOError::WAIT_RETRY);
+
+        case TLS_WANT_POLLOUT:
+          /* reschedule to EventIOWorker */
+          return m_connection->suggestOutputStreamAction(oatpp::data::IOError::WAIT_RETRY);
+
+        case 0:
+          /* Handshake successful */
+          m_connection->m_initialized = true;
+          return finish();
+
+      }
+
+      return error<Error>("[oatpp::libressl::Connection::ConnectionContext::initAsync(){initServer()}]: Error. Handshake failed.");
+
+    }
+
+    Action initClient() {
+
+      auto tlsObject = m_connection->m_tlsObject;
+      m_connection->m_tlsHandle = tlsObject->getTLSHandle();
+      const char* host = nullptr;
+      if(tlsObject->getServerName()) {
+        host = (const char*) tlsObject->getServerName()->getData();
+      }
+      auto res = tls_connect_cbs(m_connection->m_tlsHandle,
+                                 readCallback, writeCallback,
+                                 m_connection->m_stream.get(), host);
+
+      switch(res) {
+
+        case TLS_WANT_POLLIN:
+          /* reschedule to EventIOWorker */
+          return m_connection->suggestInputStreamAction(oatpp::data::IOError::WAIT_RETRY);
+
+        case TLS_WANT_POLLOUT:
+          /* reschedule to EventIOWorker */
+          return m_connection->suggestOutputStreamAction(oatpp::data::IOError::WAIT_RETRY);
+
+        case 0:
+          /* Handshake successful */
+          tlsObject->annul();
+          m_connection->m_initialized = true;
+          return finish();
+
+      }
+
+      tlsObject->annul();
+      return error<Error>("[oatpp::libressl::Connection::ConnectionContext::initAsync(){initServer()}]: Error. Handshake failed.");
+
+    }
+
+  };
+
+  if(m_connection->m_initialized) {
+    return nullptr;
+  }
+
+  return HandshakeCoroutine::start(m_connection);
+
+}
+
+bool Connection::ConnectionContext::isInitialized() const {
+  return m_connection->m_initialized;
+}
+
+data::stream::StreamType Connection::ConnectionContext::getStreamType() const {
+  return m_streamType;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Connection
+
+ssize_t Connection::writeCallback(struct tls *_ctx, const void *_buf, size_t _buflen, void *_cb_arg) {
+
+  auto stream = static_cast<IOStream*>(_cb_arg);
+
+  auto res = stream->write(_buf, _buflen);
+
+  if(res == oatpp::data::IOError::RETRY || res == oatpp::data::IOError::WAIT_RETRY) {
+    return TLS_WANT_POLLOUT;
+  }
+
+  return (ssize_t)res;
+}
+
+ssize_t Connection::readCallback(struct tls *_ctx, void *_buf, size_t _buflen, void *_cb_arg) {
+
+  auto stream = static_cast<IOStream*>(_cb_arg);
+
+  auto res = stream->read(_buf, _buflen);
+
+  if(res == oatpp::data::IOError::RETRY || res == oatpp::data::IOError::WAIT_RETRY) {
+    return TLS_WANT_POLLIN;
+  }
+
+  return (ssize_t)res;
+
+}
+
+Connection::Connection(const std::shared_ptr<TLSObject>& tlsObject,
+                       const std::shared_ptr<oatpp::data::stream::IOStream>& stream)
+  : m_tlsHandle(nullptr)
+  , m_tlsObject(tlsObject)
+  , m_stream(stream)
+  , m_initialized(false)
 {
+
+  auto& streamInContext = stream->getInputStreamContext();
+  data::stream::Context::Properties inProperties;
+  for(const auto& pair : streamInContext.getProperties().getAll()) {
+    inProperties.put(pair.first, pair.second);
+  }
+
+  inProperties.put("tls", "libressl");
+
+  m_inContext = new ConnectionContext(this, streamInContext.getStreamType(), std::move(inProperties));
+
+  auto& streamOutContext = stream->getOutputStreamContext();
+  if(streamInContext == streamOutContext) {
+    m_outContext = m_inContext;
+  } else {
+
+    data::stream::Context::Properties outProperties;
+    for(const auto& pair : streamOutContext.getProperties().getAll()) {
+      outProperties.put(pair.first, pair.second);
+    }
+
+    outProperties.put("tls", "libressl");
+
+    m_outContext = new ConnectionContext(this, streamOutContext.getStreamType(), std::move(outProperties));
+
+  }
+
 }
 
 Connection::~Connection(){
   close();
-  tls_free(m_tlsHandle);
+  if(m_tlsHandle != nullptr) {
+    tls_free(m_tlsHandle);
+  }
 }
 
 data::v_io_size Connection::write(const void *buff, v_buff_size count){
@@ -74,139 +285,42 @@ data::v_io_size Connection::read(void *buff, v_buff_size count){
   return result;
 }
 
-#if defined(WIN32) || defined(_WIN32)
-void Connection::setStreamIOMode(oatpp::data::stream::IOMode ioMode) {
-
-  u_long flags;
-
-  switch(ioMode) {
-
-    case data::stream::BLOCKING:
-        flags = 0;
-        if(NO_ERROR != ioctlsocket(m_handle, FIONBIO, &flags)) {
-            throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::BLOCKING.");
-        }
-        m_mode = data::stream::BLOCKING;
-        break;
-    case data::stream::NON_BLOCKING:
-        flags = 1;
-        if(NO_ERROR != ioctlsocket(m_handle, FIONBIO, &flags)) {
-            throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::NON_BLOCKING.");
-        }
-        m_mode = data::stream::NON_BLOCKING;
-        break;
-  }
-
-}
-#else
-void Connection::setStreamIOMode(oatpp::data::stream::IOMode ioMode) {
-
-  auto flags = fcntl(m_handle, F_GETFL);
-  if (flags < 0) {
-    throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't get socket flags.");
-  }
-
-  switch(ioMode) {
-
-    case oatpp::data::stream::IOMode::BLOCKING:
-      flags = flags & (~O_NONBLOCK);
-      if (fcntl(m_handle, F_SETFL, flags) < 0) {
-        throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::BLOCKING.");
-      }
-      break;
-
-    case oatpp::data::stream::IOMode::NON_BLOCKING:
-      flags = (flags | O_NONBLOCK);
-      if (fcntl(m_handle, F_SETFL, flags) < 0) {
-        throw std::runtime_error("[oatpp::libressl::Connection::setStreamIOMode()]: Error. Can't set stream I/O mode to IOMode::NON_BLOCKING.");
-      }
-      break;
-
-  }
-}
-#endif
-
-
-#if defined(WIN32) || defined(_WIN32)
-oatpp::data::stream::IOMode Connection::getStreamIOMode() {
-  return m_mode;
-}
-#else
-oatpp::data::stream::IOMode Connection::getStreamIOMode() {
-
-  auto flags = fcntl(m_handle, F_GETFL);
-  if (flags < 0) {
-    throw std::runtime_error("[oatpp::libressl::Connection::getStreamIOMode()]: Error. Can't get socket flags.");
-  }
-
-  if((flags & O_NONBLOCK) > 0) {
-    return oatpp::data::stream::IOMode::NON_BLOCKING;
-  }
-
-  return oatpp::data::stream::IOMode::BLOCKING;
-
-}
-#endif
-
 oatpp::async::Action Connection::suggestOutputStreamAction(data::v_io_size ioResult) {
-
-  if(ioResult > 0) {
-    return oatpp::async::Action::createIORepeatAction(m_handle, oatpp::async::Action::IOEventType::IO_EVENT_WRITE);
-  }
-
-  switch (ioResult) {
-    case oatpp::data::IOError::WAIT_RETRY:
-      return oatpp::async::Action::createIOWaitAction(m_handle, oatpp::async::Action::IOEventType::IO_EVENT_WRITE);
-    case oatpp::data::IOError::RETRY:
-      return oatpp::async::Action::createIORepeatAction(m_handle, oatpp::async::Action::IOEventType::IO_EVENT_WRITE);
-  }
-
-  throw std::runtime_error("[oatpp::libressl::Connection::suggestInputStreamAction()]: Error. Unable to suggest async action for I/O result.");
-
+  return m_stream->suggestOutputStreamAction(ioResult);
 }
 
 oatpp::async::Action Connection::suggestInputStreamAction(data::v_io_size ioResult) {
-
-  if(ioResult > 0) {
-    return oatpp::async::Action::createIORepeatAction(m_handle, oatpp::async::Action::IOEventType::IO_EVENT_READ);
-  }
-
-  switch (ioResult) {
-    case oatpp::data::IOError::WAIT_RETRY:
-      return oatpp::async::Action::createIOWaitAction(m_handle, oatpp::async::Action::IOEventType::IO_EVENT_READ);
-    case oatpp::data::IOError::RETRY:
-      return oatpp::async::Action::createIORepeatAction(m_handle, oatpp::async::Action::IOEventType::IO_EVENT_READ);
-  }
-
-  throw std::runtime_error("[oatpp::libressl::Connection::suggestInputStreamAction()]: Error. Unable to suggest async action for I/O result.");
-
-
+  return m_stream->suggestInputStreamAction(ioResult);
 }
 
 void Connection::setOutputStreamIOMode(oatpp::data::stream::IOMode ioMode) {
-  setStreamIOMode(ioMode);
+  m_stream->setOutputStreamIOMode(ioMode);
 }
 
 oatpp::data::stream::IOMode Connection::getOutputStreamIOMode() {
-  return getStreamIOMode();
+  return m_stream->getOutputStreamIOMode();
+}
+
+oatpp::data::stream::Context& Connection::getOutputStreamContext() {
+  return *m_outContext;
 }
 
 void Connection::setInputStreamIOMode(oatpp::data::stream::IOMode ioMode) {
-  setStreamIOMode(ioMode);
+  m_stream->setInputStreamIOMode(ioMode);
 }
 
 oatpp::data::stream::IOMode Connection::getInputStreamIOMode() {
-  return getStreamIOMode();
+  return m_stream->getInputStreamIOMode();
 }
 
+oatpp::data::stream::Context& Connection::getInputStreamContext() {
+  return *m_inContext;
+}
 
 void Connection::close(){
-  tls_close(m_tlsHandle);
-#if defined(WIN32) || defined(_WIN32)
-  ::closesocket(m_handle);
-#else
-  ::close(m_handle);
-#endif
+  if(m_tlsHandle != nullptr) {
+    tls_close(m_tlsHandle);
+  }
 }
   
 }}

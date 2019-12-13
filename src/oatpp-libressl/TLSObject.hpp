@@ -22,64 +22,54 @@
  *
  ***************************************************************************/
 
-#ifndef oatpp_libressl_Config_hpp
-#define oatpp_libressl_Config_hpp
+#ifndef oatpp_libressl_TLSObject_hpp
+#define oatpp_libressl_TLSObject_hpp
 
 #include "oatpp/core/Types.hpp"
 
 #include <tls.h>
-#include <memory>
+#include <mutex>
 
 namespace oatpp { namespace libressl {
 
-/**
- * Wrapper over `tls_config`.
- */
-class Config {
+class TLSObject {
 public:
-  typedef struct tls_config* TLSConfig;
+
+  enum Type : v_int32 {
+    SERVER = 0,
+    CLIENT = 1
+  };
+
+public:
+  typedef struct tls* TLSHandle;
 private:
-  TLSConfig m_config;
-public:
-  /**
-   * Constructor.
-   */
-  Config();
+  TLSHandle m_tlsHandle;
+  Type m_type;
+  oatpp::String m_serverName;
+  bool m_closed;
 public:
 
-  /**
-   * Create shared Config.
-   * @return - `std::shared_ptr` to Config.
-   */
-  static std::shared_ptr<Config> createShared();
+  TLSObject(TLSHandle tlsHandle, Type type, const oatpp::String& serverName);
 
-  /**
-   * Create default config for server with enabled TLS.
-   * @param serverCertFile - server certificate.
-   * @param privateKeyFile - private key.
-   * @return - `std::shared_ptr` to Config.
-   */
-  static std::shared_ptr<Config> createDefaultServerConfigShared(const char* serverCertFile, const char* privateKeyFile);
+  ~TLSObject();
 
-  /**
-   * Create default client config.
-   * @return - `std::shared_ptr` to Config.
-   */
-  static std::shared_ptr<Config> createDefaultClientConfigShared();
+  TLSHandle getTLSHandle();
 
-  /**
-   * Virtual destructor.
-   */
-  virtual ~Config();
+  Type getType();
 
-  /**
-   * Get underlying tls_config.
-   * @return - `tls_config*`.
-   */
-  TLSConfig getTLSConfig();
-  
+  oatpp::String getServerName();
+
+  void annul();
+
+  void close();
+
+  bool isClosed();
+
+  std::mutex objectMutex;
+
+
 };
-  
+
 }}
 
-#endif /* oatpp_libressl_Config_hpp */
+#endif // oatpp_libressl_TLSObject_hpp

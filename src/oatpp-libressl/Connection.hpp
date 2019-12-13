@@ -25,10 +25,10 @@
 #ifndef oatpp_libressl_Connection_hpp
 #define oatpp_libressl_Connection_hpp
 
+#include "TLSObject.hpp"
+
 #include "oatpp/core/base/memory/ObjectPool.hpp"
 #include "oatpp/core/data/stream/Stream.hpp"
-
-#include <tls.h>
 
 namespace oatpp { namespace libressl {
 
@@ -37,37 +37,47 @@ namespace oatpp { namespace libressl {
  */
 class Connection : public oatpp::base::Countable, public oatpp::data::stream::IOStream {
 public:
-  typedef struct tls* TLSHandle;
+
+  class ConnectionContext : public oatpp::data::stream::Context {
+  private:
+    Connection* m_connection;
+    data::stream::StreamType m_streamType;
+  public:
+
+    ConnectionContext(Connection* connection, data::stream::StreamType streamType, Properties&& properties);
+
+    void init() override;
+
+    async::CoroutineStarter initAsync() override;
+
+    bool isInitialized() const override;
+
+    data::stream::StreamType getStreamType() const override;
+
+  };
+
 public:
-  OBJECT_POOL(libressl_Connection_Pool, Connection, 32);
-  SHARED_OBJECT_POOL(libressl_Shared_Connection_Pool, Connection, 32);
+  typedef struct tls* TLSHandle;
 private:
   TLSHandle m_tlsHandle;
-  data::v_io_handle m_handle;
-#if defined(WIN32) || defined(_WIN32)
-  oatpp::data::stream::IOMode m_mode;
-#endif
+  std::shared_ptr<TLSObject> m_tlsObject;
+  std::shared_ptr<oatpp::data::stream::IOStream> m_stream;
+  std::atomic<bool> m_initialized;
 private:
-  void setStreamIOMode(oatpp::data::stream::IOMode ioMode);
-  oatpp::data::stream::IOMode getStreamIOMode();
-public:
-  /**
-   * Constructor.
-   * @param tlsHandle - `tls*`.
-   * @param handle - connection handle (file descriptor). &id:oatpp::data::v_io_handle;.
-   */
-  Connection(TLSHandle tlsHandle, data::v_io_handle handle);
+  ConnectionContext* m_inContext;
+  ConnectionContext* m_outContext;
+private:
+  static ssize_t writeCallback(struct tls *_ctx, const void *_buf, size_t _buflen, void *_cb_arg);
+  static ssize_t readCallback(struct tls *_ctx, void *_buf, size_t _buflen, void *_cb_arg);
 public:
 
   /**
-   * Create shared connection.
-   * @param tlsHandle - `tls*`.
-   * @param handle - connection handle (file descriptor). &id:oatpp::data::v_io_handle;.
-   * @return - `std::shared_ptr` to Connection.
+   * Constructor.
+   * @param tlsObject - &id:oatpp::libressl::TLSObject;.
+   * @param stream - underlying transport stream. &id:oatpp::data::stream::IOStream;.
    */
-  static std::shared_ptr<Connection> createShared(TLSHandle tlsHandle, data::v_io_handle handle){
-    return libressl_Shared_Connection_Pool::allocateShared(tlsHandle, handle);
-  }
+  Connection(const std::shared_ptr<TLSObject>& tlsObject,
+             const std::shared_ptr<oatpp::data::stream::IOStream>& stream);
 
   /**
    * Virtual destructor.
@@ -119,6 +129,12 @@ public:
   oatpp::data::stream::IOMode getOutputStreamIOMode() override;
 
   /**
+   * Get output stream context.
+   * @return - &id:oatpp::data::stream::Context;.
+   */
+  oatpp::data::stream::Context& getOutputStreamContext() override;
+
+  /**
    * Set InputStream I/O mode.
    * @param ioMode
    */
@@ -131,6 +147,13 @@ public:
   oatpp::data::stream::IOMode getInputStreamIOMode() override;
 
   /**
+   * Get input stream context. <br>
+   * @return - &id:oatpp::data::stream::Context;.
+   */
+  oatpp::data::stream::Context& getInputStreamContext() override;
+
+
+  /**
    * Close all handles.
    */
   void close();
@@ -141,14 +164,6 @@ public:
    */
   TLSHandle getTlsHandle() {
     return m_tlsHandle;
-  }
-
-  /**
-   * Get socket handle.
-   * @return - &id:oatpp::data::v_io_handle;.
-   */
-  data::v_io_handle getHandle() {
-    return m_handle;
   }
   
 };

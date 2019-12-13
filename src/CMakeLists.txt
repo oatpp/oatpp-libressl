@@ -10,6 +10,8 @@ add_library(${OATPP_THIS_MODULE_NAME}
         oatpp-libressl/client/ConnectionProvider.hpp
         oatpp-libressl/server/ConnectionProvider.cpp
         oatpp-libressl/server/ConnectionProvider.hpp
+        oatpp-libressl/TLSObject.cpp
+        oatpp-libressl/TLSObject.hpp
 )
 
 set_target_properties(${OATPP_THIS_MODULE_NAME} PROPERTIES
