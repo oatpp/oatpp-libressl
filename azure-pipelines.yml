@@ -9,11 +9,13 @@ jobs:
     continueOnError: false
     pool:
       vmImage: 'Ubuntu 16.04'
-    container:
-      image: lganzzzo/ubuntu-cmake-libressl:latest
     workspace:
       clean: all
     steps:
+      - script: |
+          ./build-libressl.sh
+        workingDirectory: utility/ci
+        displayName: 'build LibreSSL'
       - script: |
           mkdir build
       - script: |
@@ -27,7 +29,7 @@ jobs:
         displayName: 'Build - oatpp'
         workingDirectory: build/oatpp/build
       - script: |
-          cmake ..
+          cmake -DMBEDTLS_ROOT_DIR=utility/ci/tmp/libressl-build ..
           make
         displayName: 'Build - module'
         workingDirectory: build
@@ -35,3 +37,38 @@ jobs:
           make test ARGS="-V"
         displayName: 'Test'
         workingDirectory: build
+
+  - job: macOS
+    displayName: 'Build - macOS'
+    continueOnError: false
+    pool:
+      vmImage: 'macOS-10.14'
+    workspace:
+      clean: all
+    steps:
+      - script: |
+          ./build-libressl.sh
+        workingDirectory: utility/ci
+        displayName: 'build LibreSSL'
+      - script: |
+          mkdir build
+      - script: |
+          git clone https://github.com/oatpp/oatpp
+          mkdir -p oatpp/build
+        displayName: 'Checkout - oatpp'
+        workingDirectory: build
+      - script: |
+          cmake ..
+          sudo make install
+        displayName: 'Build - oatpp'
+        workingDirectory: build/oatpp/build
+      - script: |
+          cmake -DMBEDTLS_ROOT_DIR=utility/ci/tmp/mbedtls-build ..
+          make
+        displayName: 'Build - module'
+        workingDirectory: build
+      - script: |
+          make test ARGS="-V"
+        displayName: 'Test'
+        workingDirectory: build
+
