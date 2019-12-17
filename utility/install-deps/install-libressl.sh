@@ -26,6 +26,6 @@ cd libressl-$VERSION
 
 mkdir build && cd build
 
-cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 make install
