@@ -1,6 +1,26 @@
 add_executable(module-tests
         oatpp-libressl/tests.cpp
+        oatpp-libressl/FullTest.cpp
+        oatpp-libressl/FullTest.hpp
+        oatpp-libressl/FullAsyncTest.cpp
+        oatpp-libressl/FullAsyncTest.hpp
+        oatpp-libressl/FullAsyncClientTest.cpp
+        oatpp-libressl/FullAsyncClientTest.hpp
+        oatpp-libressl/app/Controller.hpp
+        oatpp-libressl/app/AsyncController.hpp
+        oatpp-libressl/app/Client.hpp
+        oatpp-libressl/app/DTOs.hpp
+        )
+
+#################################################################
+## define certificates path
+
+add_definitions(
+        -DCERT_PEM_PATH="${CMAKE_CURRENT_LIST_DIR}/../utility/cert/test_key.pem"
+        -DCERT_CRT_PATH="${CMAKE_CURRENT_LIST_DIR}/../utility/cert/test_cert.crt"
 )
+
+#################################################################
 
 set_target_properties(module-tests PROPERTIES
         CXX_STANDARD 11
@@ -20,17 +40,8 @@ add_dependencies(module-tests ${OATPP_THIS_MODULE_NAME})
 
 target_link_oatpp(module-tests)
 
-#target_link_directories(module-tests
-#        PRIVATE ${PKG_TLS_LIBRARY_DIRS}
-#        PRIVATE ${PKG_SSL_LIBRARY_DIRS}
-#        PRIVATE ${PKG_CRYPTO_LIBRARY_DIRS}
-#)
-
 target_link_libraries(module-tests
         PRIVATE ${OATPP_THIS_MODULE_NAME}
-        PRIVATE ${PKG_TLS_LIBRARIES}
-        PRIVATE ${PKG_SSL_LIBRARIES}
-        PRIVATE ${PKG_CRYPTO_LIBRARIES}
 )
 
 add_test(module-tests module-tests)

@@ -22,48 +22,29 @@
  *
  ***************************************************************************/
 
-#ifndef oatpp_libressl_Callbacks_hpp
-#define oatpp_libressl_Callbacks_hpp
+#ifndef oatpp_test_web_FullAsyncTest_hpp
+#define oatpp_test_web_FullAsyncTest_hpp
 
-#include "oatpp/core/Types.hpp"
+#include "oatpp-test/UnitTest.hpp"
 
-namespace oatpp { namespace libressl {
-
-/**
- * Collection of default-implemented callbacks for
- * libressl
- */
-class Callbacks {
+namespace oatpp { namespace test { namespace libressl {
+  
+class FullAsyncTest : public UnitTest {
 private:
-  /*
-   * Atomics for lockingCallback;
-   */
-  static oatpp::concurrency::SpinLock* LOCKS;
-private:
-  /*
-   * Init atomics for lockingCallback;
-   */
-  static oatpp::concurrency::SpinLock* createLocks();
+  v_int32 m_port;
+  v_int32 m_iterationsPerStep;
 public:
   
-  /**
-   * Set default callbacks for libressl
-   */
-  static void setDefaultCallbacks();
+  FullAsyncTest(v_int32 port, v_int32 iterationsPerStep)
+    : UnitTest("TEST[web::FullAsyncTest]")
+    , m_port(port)
+    , m_iterationsPerStep(iterationsPerStep)
+  {}
 
-  /**
-   * Oatpp-default implementation of lockingCallback passed to CRYPTO_set_locking_callback().
-   * must be set in case libressl is used in multithreaded environment.
-   * Locking is done using &id:oatpp::concurrency::SpinLock;.
-   * @param mode
-   * @param n - index of the lock.
-   * @param file - file where lock is set.
-   * @param line - line where lock is set.
-   */
-  static void lockingCallback(int mode, int n, const char* file, int line);
+  void onRun() override;
   
 };
   
-}}
+}}}
 
-#endif /* oatpp_libressl_Callbacks_hpp */
+#endif /* oatpp_test_web_FullAsyncTest_hpp */

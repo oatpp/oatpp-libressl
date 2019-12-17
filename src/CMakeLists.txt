@@ -10,6 +10,8 @@ add_library(${OATPP_THIS_MODULE_NAME}
         oatpp-libressl/client/ConnectionProvider.hpp
         oatpp-libressl/server/ConnectionProvider.cpp
         oatpp-libressl/server/ConnectionProvider.hpp
+        oatpp-libressl/TLSObject.cpp
+        oatpp-libressl/TLSObject.hpp
 )
 
 set_target_properties(${OATPP_THIS_MODULE_NAME} PROPERTIES
@@ -28,22 +30,10 @@ target_include_directories(${OATPP_THIS_MODULE_NAME}
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-target_include_directories(${OATPP_THIS_MODULE_NAME}
-        PUBLIC ${PKG_TLS_INCLUDE_DIRS}
-        PUBLIC ${PKG_SSL_INCLUDE_DIRS}
-        PUBLIC ${PKG_CRYPTO_INCLUDE_DIRS}
-)
-
-#target_link_directories(${OATPP_THIS_MODULE_NAME}
-#        PRIVATE ${PKG_TLS_LIBRARY_DIRS}
-#        PRIVATE ${PKG_SSL_LIBRARY_DIRS}
-#        PRIVATE ${PKG_CRYPTO_LIBRARY_DIRS}
-#)
-
 target_link_libraries(${OATPP_THIS_MODULE_NAME}
-        PRIVATE ${PKG_TLS_LIBRARIES}
-        PRIVATE ${PKG_SSL_LIBRARIES}
-        PRIVATE ${PKG_CRYPTO_LIBRARIES}
+        PUBLIC LibreSSL::TLS
+        PUBLIC LibreSSL::SSL
+        PUBLIC LibreSSL::Crypto
 )
 
 #######################################################################################################

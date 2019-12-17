@@ -34,9 +34,8 @@ std::shared_ptr<Config> Config::createShared() {
   return std::make_shared<Config>();
 }
 
-std::shared_ptr<Config> Config::createDefaultServerConfig(const oatpp::String& keyFile,
-                                                          const oatpp::String& certFile) {
-  
+std::shared_ptr<Config> Config::createDefaultServerConfigShared(const char* serverCertFile, const char* privateKeyFile) {
+
   unsigned int protocols = TLS_PROTOCOLS_ALL;
   const char *ciphers = "secure";
   
@@ -45,19 +44,30 @@ std::shared_ptr<Config> Config::createDefaultServerConfig(const oatpp::String& k
   tls_config_set_protocols(config->getTLSConfig(), protocols);
   
   if(tls_config_set_ciphers(config->getTLSConfig(), ciphers) < 0) {
-    throw std::runtime_error("[oatpp::libressl::Config::createDefaultServerConfig]: failed call to tls_config_set_ciphers()");
+    throw std::runtime_error("[oatpp::libressl::Config::createDefaultServerConfigShared]: failed call to tls_config_set_ciphers()");
   }
   
-  if(tls_config_set_key_file(config->getTLSConfig(), keyFile->c_str()) < 0) {
-    throw std::runtime_error("[oatpp::libressl::Config::createDefaultServerConfig]: failed call to tls_config_set_key_file()");
+  if(tls_config_set_key_file(config->getTLSConfig(), privateKeyFile) < 0) {
+    throw std::runtime_error("[oatpp::libressl::Config::createDefaultServerConfigShared]: failed call to tls_config_set_key_file()");
   }
   
-  if(tls_config_set_cert_file(config->getTLSConfig(), certFile->c_str()) < 0) {
-    throw std::runtime_error("[oatpp::libressl::Config::createDefaultServerConfig]: failed call to tls_config_set_cert_file()");
+  if(tls_config_set_cert_file(config->getTLSConfig(), serverCertFile) < 0) {
+    throw std::runtime_error("[oatpp::libressl::Config::createDefaultServerConfigShared]: failed call to tls_config_set_cert_file()");
   }
   
   return config;
   
+}
+
+std::shared_ptr<Config> Config::createDefaultClientConfigShared() {
+
+  auto config = createShared();
+
+  tls_config_insecure_noverifycert(config->getTLSConfig());
+  tls_config_insecure_noverifyname(config->getTLSConfig());
+
+  return config;
+
 }
 
 Config::~Config(){

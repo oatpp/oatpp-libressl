@@ -84,6 +84,8 @@ if(OATPP_DIR_LIB)
     link_directories(${OATPP_DIR_LIB})
 endif()
 
+include(cmake/module-utils.cmake)
+
 ###################################################################################################
 ## get dependencies
 
@@ -94,42 +96,21 @@ message("## ${OATPP_THIS_MODULE_NAME} module. Resolving dependencies...\n")
 ## Find Libressl dependency
 
 include(FindPkgConfig)
-pkg_check_modules(PKG_TLS REQUIRED libtls)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/module")
 
-message("[libressl] libtls found:")
-message("[libressl] LIBRARIES=${PKG_TLS_LIBRARIES}")
-message("[libressl] LIBRARY_DIRS=${PKG_TLS_LIBRARY_DIRS}")
-message("[libressl] INCLUDE_DIRS=${PKG_TLS_INCLUDE_DIRS}")
-message("[libressl] VERSION=${PKG_TLS_VERSION}\n")
+find_package(LibreSSL 3.0.0 REQUIRED)
 
-pkg_check_modules(PKG_SSL REQUIRED libssl)
-
-message("[libressl] libssl found:")
-message("[libressl] LIBRARIES=${PKG_SSL_LIBRARIES}")
-message("[libressl] LIBRARY_DIRS=${PKG_SSL_LIBRARY_DIRS}")
-message("[libressl] INCLUDE_DIRS=${PKG_SSL_INCLUDE_DIRS}")
-message("[libressl] VERSION=${PKG_SSL_VERSION}\n")
-
-pkg_check_modules(PKG_CRYPTO REQUIRED libcrypto)
-
-message("[libressl] libcrypto found:")
-message("[libressl] LIBRARIES=${PKG_CRYPTO_LIBRARIES}")
-message("[libressl] LIBRARY_DIRS=${PKG_CRYPTO_LIBRARY_DIRS}")
-message("[libressl] INCLUDE_DIRS=${PKG_CRYPTO_INCLUDE_DIRS}")
-message("[libressl] VERSION=${PKG_CRYPTO_VERSION}")
-
-link_directories(
-        ${PKG_TLS_LIBRARY_DIRS}
-        ${PKG_SSL_LIBRARY_DIRS}
-        ${PKG_CRYPTO_LIBRARY_DIRS}
-)
+message("LIBRESSL_INCLUDE_DIR=${LIBRESSL_INCLUDE_DIR}")
+message("LIBRESSL_TLS_LIBRARY=${LIBRESSL_TLS_LIBRARY}")
+message("LIBRESSL_SSL_LIBRARY=${LIBRESSL_SSL_LIBRARY}")
+message("LIBRESSL_CRYPTO_LIBRARY=${LIBRESSL_CRYPTO_LIBRARY}")
+message("LIBRESSL_LIBRARIES=${LIBRESSL_LIBRARIES}")
+message("LIBRESSL_VERSION=${LIBRESSL_VERSION}")
 
 message("\n############################################################################\n")
 
 ###################################################################################################
 ## define targets
-
-include(cmake/module-utils.cmake)
 
 add_subdirectory("src")
 

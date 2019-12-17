@@ -26,9 +26,9 @@
 #define oatpp_libressl_server_ConnectionProvider_hpp
 
 #include "oatpp-libressl/Config.hpp"
-#include "oatpp-libressl/Connection.hpp"
+#include "oatpp-libressl/TLSObject.hpp"
 
-#include "oatpp/network/ConnectionProvider.hpp"
+#include "oatpp/network/server/SimpleTCPConnectionProvider.hpp"
 
 namespace oatpp { namespace libressl { namespace server {
 
@@ -39,29 +39,39 @@ namespace oatpp { namespace libressl { namespace server {
 class ConnectionProvider : public oatpp::base::Countable, public oatpp::network::ServerConnectionProvider {
 private:
   std::shared_ptr<Config> m_config;
-  v_word16 m_port;
+  std::shared_ptr<oatpp::network::ServerConnectionProvider> m_streamProvider;
   bool m_closed;
-  data::v_io_handle m_serverHandle;
-  Connection::TLSHandle m_tlsServerHandle;
+  std::shared_ptr<TLSObject> m_tlsObject;
 private:
-  data::v_io_handle instantiateServer();
-  Connection::TLSHandle instantiateTLSServer();
+  std::shared_ptr<TLSObject> instantiateTLSServer();
 public:
   /**
    * Constructor.
    * @param config - &id:oatpp::libressl::Config;.
-   * @param port - port to listen on.
+   * @param streamProvider - provider of underlying transport stream. &id:oatpp::network::ServerConnectionProvider;.
    */
-  ConnectionProvider(const std::shared_ptr<Config>& config, v_word16 port);
+  ConnectionProvider(const std::shared_ptr<Config>& config,
+                     const std::shared_ptr<oatpp::network::ServerConnectionProvider>& streamProvider);
 public:
 
   /**
    * Create shared ConnectionProvider.
    * @param config - &id:oatpp::libressl::Config;.
+   * @param streamProvider - provider of underlying transport stream. &id:oatpp::network::ServerConnectionProvider;.
+   * @return - `std::shared_ptr` to ConnectionProvider.
+   */
+  static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config,
+                                                          const std::shared_ptr<oatpp::network::ServerConnectionProvider>& streamProvider);
+
+  /**
+   * Create shared ConnectionProvider using &id:oatpp::network::server::SimpleTCPConnectionProvider;
+   * as a provider of underlying transport stream.
+   * @param config - &id:oatpp::libressl::Config;.
    * @param port - port to listen on.
-   * @return `std::shared_ptr` to ConnectionProvider.
+   * @return - `std::shared_ptr` to ConnectionProvider.
    */
   static std::shared_ptr<ConnectionProvider> createShared(const std::shared_ptr<Config>& config, v_word16 port);
+
 
   /**
    * Virtual destructor.

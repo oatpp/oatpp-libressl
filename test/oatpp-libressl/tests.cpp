@@ -1,46 +1,57 @@
 
 #include "oatpp-test/UnitTest.hpp"
 
-#include "oatpp-libressl/client/ConnectionProvider.hpp"
-#include "oatpp-libressl/server/ConnectionProvider.hpp"
+#include "FullTest.hpp"
+#include "FullAsyncTest.hpp"
+#include "FullAsyncClientTest.hpp"
+
 #include "oatpp-libressl/Callbacks.hpp"
 
 #include "oatpp/core/concurrency/SpinLock.hpp"
 #include "oatpp/core/base/Environment.hpp"
 
 #include <iostream>
+#include <csignal>
 
 namespace {
-
-class Test : public oatpp::test::UnitTest {
-public:
-  Test() : oatpp::test::UnitTest("MyTag")
-  {}
-
-  void onRun() override {
-
-    // TODO - create meaningful tests !!!
-
-    auto config = oatpp::libressl::Config::createShared();
-
-    try {
-      auto serverConnectionProvider = oatpp::libressl::server::ConnectionProvider::createShared(config, 8000);
-    } catch(...) {
-
-    }
-
-    auto clientConnectionProvider = oatpp::libressl::client::ConnectionProvider(config, "localhost", 8000);
-
-  }
-
-};
 
 void runTests() {
 
   /* set lockingCallback for libressl */
   oatpp::libressl::Callbacks::setDefaultCallbacks();
 
-  OATPP_RUN_TEST(Test);
+  /* ignore SIGPIPE */
+  std::signal(SIGPIPE, SIG_IGN);
+
+  {
+
+    oatpp::test::libressl::FullTest test_virtual(0, 100);
+    test_virtual.run();
+
+    oatpp::test::libressl::FullTest test_port(8443, 10);
+    test_port.run();
+
+  }
+
+  {
+
+    oatpp::test::libressl::FullAsyncTest test_virtual(0, 100);
+    test_virtual.run();
+
+    oatpp::test::libressl::FullAsyncTest test_port(8443, 10);
+    test_port.run();
+
+  }
+
+  {
+
+    oatpp::test::libressl::FullAsyncClientTest test_virtual(0, 10);
+    test_virtual.run(20); // - run this test 20 times.
+
+    oatpp::test::libressl::FullAsyncClientTest test_port(8443, 10);
+    test_port.run(1);
+
+  }
 
 }
 

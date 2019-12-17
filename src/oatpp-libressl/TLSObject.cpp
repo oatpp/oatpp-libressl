@@ -22,48 +22,48 @@
  *
  ***************************************************************************/
 
-#ifndef oatpp_libressl_Callbacks_hpp
-#define oatpp_libressl_Callbacks_hpp
-
-#include "oatpp/core/Types.hpp"
+#include "TLSObject.hpp"
 
 namespace oatpp { namespace libressl {
 
-/**
- * Collection of default-implemented callbacks for
- * libressl
- */
-class Callbacks {
-private:
-  /*
-   * Atomics for lockingCallback;
-   */
-  static oatpp::concurrency::SpinLock* LOCKS;
-private:
-  /*
-   * Init atomics for lockingCallback;
-   */
-  static oatpp::concurrency::SpinLock* createLocks();
-public:
-  
-  /**
-   * Set default callbacks for libressl
-   */
-  static void setDefaultCallbacks();
+TLSObject::TLSObject(TLSHandle tlsHandle, Type type, const oatpp::String& serverName)
+  : m_tlsHandle(tlsHandle)
+  , m_type(type)
+  , m_serverName(serverName)
+  , m_closed(false)
+{}
 
-  /**
-   * Oatpp-default implementation of lockingCallback passed to CRYPTO_set_locking_callback().
-   * must be set in case libressl is used in multithreaded environment.
-   * Locking is done using &id:oatpp::concurrency::SpinLock;.
-   * @param mode
-   * @param n - index of the lock.
-   * @param file - file where lock is set.
-   * @param line - line where lock is set.
-   */
-  static void lockingCallback(int mode, int n, const char* file, int line);
-  
-};
-  
+TLSObject::~TLSObject() {
+  close();
+}
+
+TLSObject::TLSHandle TLSObject::getTLSHandle() {
+  return m_tlsHandle;
+}
+
+TLSObject::Type TLSObject::getType() {
+  return m_type;
+}
+
+oatpp::String TLSObject::getServerName() {
+  return m_serverName;
+}
+
+void TLSObject::annul() {
+  m_closed = true;
+  m_tlsHandle = nullptr;
+}
+
+void TLSObject::close() {
+  if(!m_closed) {
+    m_closed = true;
+    tls_close(m_tlsHandle);
+    tls_free(m_tlsHandle);
+  }
+}
+
+bool TLSObject::isClosed() {
+  return m_closed;
+}
+
 }}
-
-#endif /* oatpp_libressl_Callbacks_hpp */
