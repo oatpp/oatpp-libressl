@@ -15,7 +15,7 @@ jobs:
       clean: all
     steps:
       - script: |
-          ./install-libressl.sh
+          sudo ./install-libressl.sh
         workingDirectory: utility/install-deps
         displayName: 'build LibreSSL'
       - script: |
