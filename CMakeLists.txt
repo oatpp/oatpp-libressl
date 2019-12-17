@@ -100,6 +100,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/module")
 
 find_package(LibreSSL 3.0.0 REQUIRED)
 
+message("LIBRESSL_INCLUDE_DIR=${LIBRESSL_INCLUDE_DIR}")
+message("LIBRESSL_TLS_LIBRARY=${LIBRESSL_TLS_LIBRARY}")
+message("LIBRESSL_SSL_LIBRARY=${LIBRESSL_SSL_LIBRARY}")
+message("LIBRESSL_CRYPTO_LIBRARY=${LIBRESSL_CRYPTO_LIBRARY}")
+message("LIBRESSL_LIBRARIES=${LIBRESSL_LIBRARIES}")
+message("LIBRESSL_VERSION=${LIBRESSL_VERSION}")
+
 message("\n############################################################################\n")
 
 ###################################################################################################
