@@ -114,11 +114,11 @@ async::CoroutineStarter Connection::ConnectionContext::initAsync() {
 
         case TLS_WANT_POLLIN:
           /* reschedule to EventIOWorker */
-          return m_connection->suggestInputStreamAction(oatpp::data::IOError::WAIT_RETRY);
+          return m_connection->suggestInputStreamAction(oatpp::data::IOError::WAIT_RETRY_READ);
 
         case TLS_WANT_POLLOUT:
           /* reschedule to EventIOWorker */
-          return m_connection->suggestOutputStreamAction(oatpp::data::IOError::WAIT_RETRY);
+          return m_connection->suggestOutputStreamAction(oatpp::data::IOError::WAIT_RETRY_WRITE);
 
         case 0:
           /* Handshake successful */
@@ -147,11 +147,11 @@ async::CoroutineStarter Connection::ConnectionContext::initAsync() {
 
         case TLS_WANT_POLLIN:
           /* reschedule to EventIOWorker */
-          return m_connection->suggestInputStreamAction(oatpp::data::IOError::WAIT_RETRY);
+          return m_connection->suggestInputStreamAction(oatpp::data::IOError::WAIT_RETRY_READ);
 
         case TLS_WANT_POLLOUT:
           /* reschedule to EventIOWorker */
-          return m_connection->suggestOutputStreamAction(oatpp::data::IOError::WAIT_RETRY);
+          return m_connection->suggestOutputStreamAction(oatpp::data::IOError::WAIT_RETRY_WRITE);
 
         case 0:
           /* Handshake successful */
@@ -193,7 +193,8 @@ ssize_t Connection::writeCallback(struct tls *_ctx, const void *_buf, size_t _bu
 
   auto res = stream->write(_buf, _buflen);
 
-  if(res == oatpp::data::IOError::RETRY || res == oatpp::data::IOError::WAIT_RETRY) {
+  if(res == oatpp::data::IOError::RETRY_READ || res == oatpp::data::IOError::WAIT_RETRY_READ ||
+     res == oatpp::data::IOError::RETRY_WRITE || res == oatpp::data::IOError::WAIT_RETRY_WRITE) {
     return TLS_WANT_POLLOUT;
   }
 
@@ -206,7 +207,8 @@ ssize_t Connection::readCallback(struct tls *_ctx, void *_buf, size_t _buflen, v
 
   auto res = stream->read(_buf, _buflen);
 
-  if(res == oatpp::data::IOError::RETRY || res == oatpp::data::IOError::WAIT_RETRY) {
+  if(res == oatpp::data::IOError::RETRY_READ || res == oatpp::data::IOError::WAIT_RETRY_READ ||
+     res == oatpp::data::IOError::RETRY_WRITE || res == oatpp::data::IOError::WAIT_RETRY_WRITE) {
     return TLS_WANT_POLLIN;
   }
 
@@ -224,12 +226,12 @@ Connection::Connection(const std::shared_ptr<TLSObject>& tlsObject,
 
   auto& streamInContext = stream->getInputStreamContext();
   data::stream::Context::Properties inProperties;
-  for(const auto& pair : streamInContext.getProperties().getAll()) {
+  for(const auto& pair : streamInContext.getProperties().getAll_Unsafe()) {
     inProperties.put(pair.first, pair.second);
   }
 
   inProperties.put("tls", "libressl");
-
+  inProperties.getAll();
   m_inContext = new ConnectionContext(this, streamInContext.getStreamType(), std::move(inProperties));
 
   auto& streamOutContext = stream->getOutputStreamContext();
@@ -238,12 +240,12 @@ Connection::Connection(const std::shared_ptr<TLSObject>& tlsObject,
   } else {
 
     data::stream::Context::Properties outProperties;
-    for(const auto& pair : streamOutContext.getProperties().getAll()) {
+    for(const auto& pair : streamOutContext.getProperties().getAll_Unsafe()) {
       outProperties.put(pair.first, pair.second);
     }
 
     outProperties.put("tls", "libressl");
-
+    outProperties.getAll();
     m_outContext = new ConnectionContext(this, streamOutContext.getStreamType(), std::move(outProperties));
 
   }
@@ -251,6 +253,12 @@ Connection::Connection(const std::shared_ptr<TLSObject>& tlsObject,
 }
 
 Connection::~Connection(){
+  if(m_inContext == m_outContext) {
+    delete m_inContext;
+  } else {
+    delete m_inContext;
+    delete m_outContext;
+  }
   close();
   if(m_tlsHandle != nullptr) {
     tls_free(m_tlsHandle);
@@ -260,8 +268,12 @@ Connection::~Connection(){
 data::v_io_size Connection::write(const void *buff, v_buff_size count){
   auto result = tls_write(m_tlsHandle, buff, count);
   if(result < 0) {
-    if (result == TLS_WANT_POLLIN || result == TLS_WANT_POLLOUT) {
-      return data::IOError::WAIT_RETRY;
+    switch (result) {
+      case TLS_WANT_POLLIN:
+        return oatpp::data::IOError::WAIT_RETRY_READ;
+
+      case TLS_WANT_POLLOUT:
+        return oatpp::data::IOError::WAIT_RETRY_WRITE;
     }
     auto error = tls_error(m_tlsHandle);
     if(error){
@@ -274,8 +286,12 @@ data::v_io_size Connection::write(const void *buff, v_buff_size count){
 data::v_io_size Connection::read(void *buff, v_buff_size count){
   auto result = tls_read(m_tlsHandle, buff, count);
   if(result < 0) {
-    if (result == TLS_WANT_POLLIN || result == TLS_WANT_POLLOUT) {
-      return data::IOError::WAIT_RETRY;
+    switch (result) {
+      case TLS_WANT_POLLIN:
+        return oatpp::data::IOError::WAIT_RETRY_READ;
+
+      case TLS_WANT_POLLOUT:
+        return oatpp::data::IOError::WAIT_RETRY_WRITE;
     }
     auto error = tls_error(m_tlsHandle);
     if(error){
@@ -286,11 +302,25 @@ data::v_io_size Connection::read(void *buff, v_buff_size count){
 }
 
 oatpp::async::Action Connection::suggestOutputStreamAction(data::v_io_size ioResult) {
-  return m_stream->suggestOutputStreamAction(ioResult);
+  switch (ioResult) {
+    case oatpp::data::IOError::RETRY_READ:
+      return m_stream->suggestInputStreamAction(ioResult);
+    case oatpp::data::IOError::WAIT_RETRY_READ:
+      return m_stream->suggestInputStreamAction(ioResult);
+    default:
+      return m_stream->suggestOutputStreamAction(ioResult);
+  }
 }
 
 oatpp::async::Action Connection::suggestInputStreamAction(data::v_io_size ioResult) {
-  return m_stream->suggestInputStreamAction(ioResult);
+  switch (ioResult) {
+    case oatpp::data::IOError::RETRY_WRITE:
+      return m_stream->suggestOutputStreamAction(ioResult);
+    case oatpp::data::IOError::WAIT_RETRY_WRITE:
+      return m_stream->suggestOutputStreamAction(ioResult);
+    default:
+      return m_stream->suggestInputStreamAction(ioResult);
+  }
 }
 
 void Connection::setOutputStreamIOMode(oatpp::data::stream::IOMode ioMode) {

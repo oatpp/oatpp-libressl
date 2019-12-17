@@ -32,15 +32,24 @@
 
 namespace oatpp { namespace libressl {
 
+/**
+ * Utility object. Used to manage TLS handle &l:TLSObject::TLSHandle;.
+ */
 class TLSObject {
 public:
 
+  /**
+   * TLSHandle type.
+   */
   enum Type : v_int32 {
     SERVER = 0,
     CLIENT = 1
   };
 
 public:
+  /**
+   * Convenience typedef for `struct tls*`.
+   */
   typedef struct tls* TLSHandle;
 private:
   TLSHandle m_tlsHandle;
@@ -49,24 +58,53 @@ private:
   bool m_closed;
 public:
 
+  /**
+   * Constructor.
+   * @param tlsHandle
+   * @param type
+   * @param serverName
+   */
   TLSObject(TLSHandle tlsHandle, Type type, const oatpp::String& serverName);
 
+  /**
+   * Non-virtual destructor.
+   * Calls &l:TLSObject::close ();.
+   */
   ~TLSObject();
 
+  /**
+   * Get underlying TLS handle.
+   * @return
+   */
   TLSHandle getTLSHandle();
 
+  /**
+   * Get type of `TLSObject`.
+   * @return
+   */
   Type getType();
 
+  /**
+   * Get server name - applicable if `TLSObject::Type == SERVER`.
+   * @return
+   */
   oatpp::String getServerName();
 
+  /**
+   * Forget about TLS handle. TLS handle won't be freed on the destruction of TLS Object.
+   */
   void annul();
 
+  /**
+   * Call `tls_close` and `tls_free` on the underlying TLS handle.
+   */
   void close();
 
+  /**
+   * Check if TLS object was closed.
+   * @return
+   */
   bool isClosed();
-
-  std::mutex objectMutex;
-
 
 };
 

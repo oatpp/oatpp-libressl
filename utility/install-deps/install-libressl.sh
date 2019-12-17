@@ -3,21 +3,23 @@
 mkdir tmp
 cd tmp
 
-#############################################
-## download libressl-2.9.0
+VERSION=3.0.2
 
-wget https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-2.9.0.tar.gz
+#############################################
+## download libressl-$VERSION
+
+wget https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-$VERSION.tar.gz
 
 #############################################
 ## clean dir
 
-rm -rf libressl-2.9.0
+rm -rf libressl-$VERSION
 
 #############################################
 ## unpack
 
-tar -xvzf libressl-2.9.0.tar.gz
-cd libressl-2.9.0
+tar -xvzf libressl-$VERSION.tar.gz
+cd libressl-$VERSION
 
 #############################################
 ## build and install libressl

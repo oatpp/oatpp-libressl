@@ -109,6 +109,10 @@ oatpp::async::CoroutineStarterForResult<const std::shared_ptr<oatpp::data::strea
     Action onConnected(const std::shared_ptr<oatpp::data::stream::IOStream>& stream) {
       /* transport stream obtained */
       m_stream = stream;
+      return yieldTo(&ConnectCoroutine::secureConnection);
+    }
+
+    Action secureConnection() {
 
       Connection::TLSHandle tlsHandle = tls_client();
       tls_configure(tlsHandle, m_config->getTLSConfig());

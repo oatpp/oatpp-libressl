@@ -36,7 +36,7 @@ namespace oatpp { namespace libressl {
  * TLS Connection implementation. Extends &id:oatpp::base::Countable; and &id:oatpp::data::stream::IOStream;.
  */
 class Connection : public oatpp::base::Countable, public oatpp::data::stream::IOStream {
-public:
+private:
 
   class ConnectionContext : public oatpp::data::stream::Context {
   private:
@@ -151,7 +151,6 @@ public:
    * @return - &id:oatpp::data::stream::Context;.
    */
   oatpp::data::stream::Context& getInputStreamContext() override;
-
 
   /**
    * Close all handles.

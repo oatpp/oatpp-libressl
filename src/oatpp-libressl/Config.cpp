@@ -35,7 +35,7 @@ std::shared_ptr<Config> Config::createShared() {
 }
 
 std::shared_ptr<Config> Config::createDefaultServerConfigShared(const char* serverCertFile, const char* privateKeyFile) {
-  
+
   unsigned int protocols = TLS_PROTOCOLS_ALL;
   const char *ciphers = "secure";
   

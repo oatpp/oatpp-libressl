@@ -66,9 +66,9 @@ std::shared_ptr<TLSObject> ConnectionProvider::instantiateTLSServer() {
     throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider::instantiateTLSServer()]: Failed to create tls_server");
   }
 
-  if(tls_configure(handle, m_config->getTLSConfig()) < 0) {
+  if (tls_configure(handle, m_config->getTLSConfig()) < 0) {
     OATPP_LOGD("[oatpp::libressl::server::ConnectionProvider::instantiateTLSServer()]", "Error on call to 'tls_configure'. %s", tls_error(handle));
-    throw std::runtime_error("[oatpp::libressl::server::ConnectionProvider::instantiateTLSServer()]: Failed to configure tls_server");
+    throw std::runtime_error( "[oatpp::libressl::server::ConnectionProvider::instantiateTLSServer()]: Failed to configure tls_server");
   }
 
   return std::make_shared<TLSObject>(handle, TLSObject::Type::SERVER, nullptr);

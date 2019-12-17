@@ -62,7 +62,13 @@ public:
   static std::shared_ptr<Config> createDefaultServerConfigShared(const char* serverCertFile, const char* privateKeyFile);
 
   /**
-   * Create default client config.
+   * Create default client config. <br>
+   * Please note - this method automatically sets: <br>
+   * <ul>
+   *   <li>`tls_config_insecure_noverifycert`</li>
+   *   <li>`tls_config_insecure_noverifyname`</li>
+   * </ul> <br>
+   * Create with &l:Config::createShared; instead in order to override this behavior.
    * @return - `std::shared_ptr` to Config.
    */
   static std::shared_ptr<Config> createDefaultClientConfigShared();

@@ -25,7 +25,6 @@
 #ifndef oatpp_libressl_Callbacks_hpp
 #define oatpp_libressl_Callbacks_hpp
 
-#include "oatpp/core/concurrency/SpinLock.hpp"
 #include "oatpp/core/Types.hpp"
 
 namespace oatpp { namespace libressl {

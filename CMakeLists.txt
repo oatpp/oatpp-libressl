@@ -94,7 +94,7 @@ message("## ${OATPP_THIS_MODULE_NAME} module. Resolving dependencies...\n")
 ## Find Libressl dependency
 
 include(FindPkgConfig)
-pkg_check_modules(PKG_TLS REQUIRED libtls)
+pkg_check_modules(PKG_TLS REQUIRED libtls>3.0.0)
 
 message("[libressl] libtls found:")
 message("[libressl] LIBRARIES=${PKG_TLS_LIBRARIES}")
@@ -102,7 +102,7 @@ message("[libressl] LIBRARY_DIRS=${PKG_TLS_LIBRARY_DIRS}")
 message("[libressl] INCLUDE_DIRS=${PKG_TLS_INCLUDE_DIRS}")
 message("[libressl] VERSION=${PKG_TLS_VERSION}\n")
 
-pkg_check_modules(PKG_SSL REQUIRED libssl)
+pkg_check_modules(PKG_SSL REQUIRED libssl>3.0.0)
 
 message("[libressl] libssl found:")
 message("[libressl] LIBRARIES=${PKG_SSL_LIBRARIES}")
@@ -110,13 +110,14 @@ message("[libressl] LIBRARY_DIRS=${PKG_SSL_LIBRARY_DIRS}")
 message("[libressl] INCLUDE_DIRS=${PKG_SSL_INCLUDE_DIRS}")
 message("[libressl] VERSION=${PKG_SSL_VERSION}\n")
 
-pkg_check_modules(PKG_CRYPTO REQUIRED libcrypto)
+pkg_check_modules(PKG_CRYPTO REQUIRED libcrypto>3.0.0)
 
 message("[libressl] libcrypto found:")
 message("[libressl] LIBRARIES=${PKG_CRYPTO_LIBRARIES}")
 message("[libressl] LIBRARY_DIRS=${PKG_CRYPTO_LIBRARY_DIRS}")
 message("[libressl] INCLUDE_DIRS=${PKG_CRYPTO_INCLUDE_DIRS}")
 message("[libressl] VERSION=${PKG_CRYPTO_VERSION}")
+
 
 link_directories(
         ${PKG_TLS_LIBRARY_DIRS}
