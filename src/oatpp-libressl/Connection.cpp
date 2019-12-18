@@ -225,13 +225,10 @@ Connection::Connection(const std::shared_ptr<TLSObject>& tlsObject,
 {
 
   auto& streamInContext = stream->getInputStreamContext();
-  data::stream::Context::Properties inProperties;
-  for(const auto& pair : streamInContext.getProperties().getAll_Unsafe()) {
-    inProperties.put(pair.first, pair.second);
-  }
-
+  data::stream::Context::Properties inProperties(streamInContext.getProperties());
   inProperties.put("tls", "libressl");
   inProperties.getAll();
+
   m_inContext = new ConnectionContext(this, streamInContext.getStreamType(), std::move(inProperties));
 
   auto& streamOutContext = stream->getOutputStreamContext();
@@ -239,13 +236,10 @@ Connection::Connection(const std::shared_ptr<TLSObject>& tlsObject,
     m_outContext = m_inContext;
   } else {
 
-    data::stream::Context::Properties outProperties;
-    for(const auto& pair : streamOutContext.getProperties().getAll_Unsafe()) {
-      outProperties.put(pair.first, pair.second);
-    }
-
+    data::stream::Context::Properties outProperties(streamOutContext.getProperties());
     outProperties.put("tls", "libressl");
     outProperties.getAll();
+
     m_outContext = new ConnectionContext(this, streamOutContext.getStreamType(), std::move(outProperties));
 
   }
