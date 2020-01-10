@@ -162,6 +162,29 @@ data::stream::StreamType Connection::ConnectionContext::getStreamType() const {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IOLockGuard
+
+Connection::IOLockGuard::IOLockGuard(Connection* connection, async::Action* checkAction)
+  : m_connection(connection)
+  , m_checkAction(checkAction)
+{
+  m_connection->packIOAction(m_checkAction);
+  m_locked = true;
+}
+
+Connection::IOLockGuard::~IOLockGuard() {
+  if(m_locked) {
+    m_connection->m_ioLock.unlock();
+  }
+}
+
+bool Connection::IOLockGuard::unpackAndCheck() {
+  async::Action* check = m_connection->unpackIOAction();
+  m_locked = false;
+  return check == m_checkAction;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Connection
 
 ssize_t Connection::writeCallback(struct tls *_ctx, const void *_buf, size_t _buflen, void *_cb_arg) {
@@ -264,11 +287,11 @@ async::Action* Connection::unpackIOAction() {
 
 oatpp::v_io_size Connection::write(const void *buff, v_buff_size count, async::Action& action){
 
-  packIOAction(&action);
-  auto result = tls_write(m_tlsHandle, buff, count);
-  async::Action* check = unpackIOAction();
+  IOLockGuard ioGuard(this, &action);
 
-  if(check != &action) {
+  auto result = tls_write(m_tlsHandle, buff, count);
+
+  if(!ioGuard.unpackAndCheck()) {
     OATPP_LOGE("[oatpp::libressl::Connection::write(...)]", "Error. Packed action check failed!!!");
     return oatpp::IOError::BROKEN_PIPE;
   }
@@ -288,11 +311,11 @@ oatpp::v_io_size Connection::write(const void *buff, v_buff_size count, async::A
 
 oatpp::v_io_size Connection::read(void *buff, v_buff_size count, async::Action& action){
 
-  packIOAction(&action);
-  auto result = tls_read(m_tlsHandle, buff, count);
-  async::Action* check = unpackIOAction();
+  IOLockGuard ioGuard(this, &action);
 
-  if(check != &action) {
+  auto result = tls_read(m_tlsHandle, buff, count);
+
+  if(!ioGuard.unpackAndCheck()) {
     OATPP_LOGE("[oatpp::libressl::Connection::read(...)]", "Error. Packed action check failed!!!");
     return oatpp::IOError::BROKEN_PIPE;
   }

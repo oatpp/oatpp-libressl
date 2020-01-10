@@ -38,6 +38,22 @@ namespace oatpp { namespace libressl {
 class Connection : public oatpp::base::Countable, public oatpp::data::stream::IOStream {
 private:
 
+  class IOLockGuard {
+  private:
+    Connection* m_connection;
+    async::Action* m_checkAction;
+    bool m_locked;
+  public:
+
+    IOLockGuard(Connection* connection, async::Action* checkAction);
+    ~IOLockGuard();
+
+    bool unpackAndCheck();
+
+  };
+
+private:
+
   class ConnectionContext : public oatpp::data::stream::Context {
   private:
     Connection* m_connection;
