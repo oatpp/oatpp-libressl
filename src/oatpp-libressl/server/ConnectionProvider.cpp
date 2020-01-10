@@ -86,7 +86,11 @@ void ConnectionProvider::close() {
 }
 
 std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection(){
-  return std::make_shared<Connection>(m_tlsObject, m_streamProvider->getConnection());
+  auto transportStream = m_streamProvider->getConnection();
+  if(transportStream) {
+    return std::make_shared<Connection>(m_tlsObject, transportStream);
+  }
+  return nullptr;
 }
 
 }}}

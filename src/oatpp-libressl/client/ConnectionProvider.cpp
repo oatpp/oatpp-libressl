@@ -126,8 +126,8 @@ oatpp::async::CoroutineStarterForResult<const std::shared_ptr<oatpp::data::strea
       auto tlsObject = std::make_shared<TLSObject>(tlsHandle, TLSObject::Type::CLIENT, host);
       m_connection = std::make_shared<Connection>(tlsObject, m_stream);
 
-      m_connection->setOutputStreamIOMode(oatpp::data::stream::IOMode::NON_BLOCKING);
-      m_connection->setInputStreamIOMode(oatpp::data::stream::IOMode::NON_BLOCKING);
+      m_connection->setOutputStreamIOMode(oatpp::data::stream::IOMode::ASYNCHRONOUS);
+      m_connection->setInputStreamIOMode(oatpp::data::stream::IOMode::ASYNCHRONOUS);
 
       return m_connection->initContextsAsync().next(yieldTo(&ConnectCoroutine::onSuccess));
 
