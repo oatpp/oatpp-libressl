@@ -93,5 +93,25 @@ std::shared_ptr<oatpp::data::stream::IOStream> ConnectionProvider::getConnection
   return nullptr;
 }
 
+void ConnectionProvider::invalidateConnection(const std::shared_ptr<IOStream>& connection) {
+
+  auto c = std::static_pointer_cast<oatpp::libressl::Connection>(connection);
+
+  /********************************************
+   * WARNING!!!
+   *
+   * c->closeTLS(); <--- DO NOT
+   *
+   * DO NOT CLOSE or DELETE TLS handles here.
+   * Remember - other threads can still be
+   * waiting for TLS events.
+   ********************************************/
+
+  /* Invalidate underlying transport */
+  auto s = c->getTransportStream();
+  m_streamProvider->invalidateConnection(s);
+
+}
+
 }}}
 
