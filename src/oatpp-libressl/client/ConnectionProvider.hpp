@@ -90,7 +90,7 @@ public:
   oatpp::async::CoroutineStarterForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> getConnectionAsync() override;
 
   /**
-   * Will call `closeTLS()` on connection, and then `invalidateConnection()` for the underlying transport stream.
+   * Will call `invalidateConnection()` for the underlying transport stream.
    * @param connection - **MUST** be an instance of &id:oatpp::libressl::Connection;.
    */
   void invalidateConnection(const std::shared_ptr<IOStream>& connection) override;
