@@ -23,6 +23,7 @@
  ***************************************************************************/
 
 #include "Connection.hpp"
+#include <openssl/err.h>
 
 namespace oatpp { namespace libressl {
 
@@ -65,7 +66,7 @@ void Connection::ConnectionContext::init() {
       tlsObject->annul();
 
       if (res != 0) {
-        OATPP_LOGD("[oatpp::libressl::Connection::ConnectionContext::init()]", "Error on call to 'tls_connect_cbs'. res=%d", res);
+        OATPP_LOGD("[oatpp::libressl::Connection::ConnectionContext::init()]", "Error on call to 'tls_connect_cbs'. %s", tls_error(m_connection->m_tlsHandle));
       }
 
     } else {
