@@ -31,9 +31,30 @@
 
 namespace oatpp { namespace libressl { namespace server {
 
+void ConnectionProvider::ConnectionInvalidator::invalidate(const std::shared_ptr<data::stream::IOStream> &connection){
+
+  auto c = std::static_pointer_cast<oatpp::libressl::Connection>(connection);
+
+  /********************************************
+   * WARNING!!!
+   *
+   * c->closeTLS(); <--- DO NOT
+   *
+   * DO NOT CLOSE or DELETE TLS handles here.
+   * Remember - other threads can still be
+   * waiting for TLS events.
+   ********************************************/
+
+  /* Invalidate underlying transport */
+  auto s = c->getTransportStream();
+  s.invalidator->invalidate(s.object);
+
+}
+
 ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
                                        const std::shared_ptr<oatpp::network::ServerConnectionProvider>& streamProvider)
-  : m_config(config)
+  : m_connectionInvalidator(std::make_shared<ConnectionInvalidator>())
+  , m_config(config)
   , m_streamProvider(streamProvider)
   , m_closed(false)
 {
@@ -92,32 +113,15 @@ void ConnectionProvider::stop() {
   }
 }
 
-std::shared_ptr<data::stream::IOStream> ConnectionProvider::get(){
+provider::ResourceHandle<data::stream::IOStream> ConnectionProvider::get(){
   auto transportStream = m_streamProvider->get();
   if(transportStream) {
-    return std::make_shared<Connection>(m_tlsObject, transportStream);
+    return provider::ResourceHandle<data::stream::IOStream>(
+        std::make_shared<Connection>(m_tlsObject, transportStream),
+        m_connectionInvalidator
+      );
   }
   return nullptr;
-}
-
-void ConnectionProvider::invalidate(const std::shared_ptr<data::stream::IOStream>& connection) {
-
-  auto c = std::static_pointer_cast<oatpp::libressl::Connection>(connection);
-
-  /********************************************
-   * WARNING!!!
-   *
-   * c->closeTLS(); <--- DO NOT
-   *
-   * DO NOT CLOSE or DELETE TLS handles here.
-   * Remember - other threads can still be
-   * waiting for TLS events.
-   ********************************************/
-
-  /* Invalidate underlying transport */
-  auto s = c->getTransportStream();
-  m_streamProvider->invalidate(s);
-
 }
 
 }}}

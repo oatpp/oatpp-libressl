@@ -57,7 +57,7 @@ void Connection::ConnectionContext::init() {
       m_connection->m_tlsHandle = tlsObject->getTLSHandle();
       const char* host = nullptr;
       if(tlsObject->getServerName()) {
-        host = (const char*) tlsObject->getServerName()->getData();
+        host = (const char*) tlsObject->getServerName()->c_str();
       }
       auto res = tls_connect_cbs(m_connection->m_tlsHandle,
                                  readCallback, writeCallback,
@@ -127,7 +127,7 @@ async::CoroutineStarter Connection::ConnectionContext::initAsync() {
       m_connection->m_tlsHandle = tlsObject->getTLSHandle();
       const char* host = nullptr;
       if(tlsObject->getServerName()) {
-        host = (const char*) tlsObject->getServerName()->getData();
+        host = (const char*) tlsObject->getServerName()->c_str();
       }
       auto res = tls_connect_cbs(m_connection->m_tlsHandle,
                                  readCallback, writeCallback,
@@ -195,7 +195,7 @@ ssize_t Connection::writeCallback(struct tls *_ctx, const void *_buf, size_t _bu
 
   v_io_size res;
   if(ioAction && ioAction->isNone()) {
-    res = connection->m_stream->write(_buf, _buflen, *ioAction);
+    res = connection->m_stream.object->write(_buf, _buflen, *ioAction);
     if(res == IOError::RETRY_READ || res == IOError::RETRY_WRITE) {
       res = TLS_WANT_POLLOUT;
     }
@@ -216,7 +216,7 @@ ssize_t Connection::readCallback(struct tls *_ctx, void *_buf, size_t _buflen, v
 
   v_io_size res;
   if(ioAction && ioAction->isNone()) {
-    res = connection->m_stream->read(_buf, _buflen, *ioAction);
+    res = connection->m_stream.object->read(_buf, _buflen, *ioAction);
     if(res == IOError::RETRY_READ || res == IOError::RETRY_WRITE) {
       res = TLS_WANT_POLLOUT;
     }
@@ -231,7 +231,7 @@ ssize_t Connection::readCallback(struct tls *_ctx, void *_buf, size_t _buflen, v
 }
 
 Connection::Connection(const std::shared_ptr<TLSObject>& tlsObject,
-                       const std::shared_ptr<oatpp::data::stream::IOStream>& stream)
+                       const provider::ResourceHandle<oatpp::data::stream::IOStream>& stream)
   : m_tlsHandle(nullptr)
   , m_tlsObject(tlsObject)
   , m_stream(stream)
@@ -239,14 +239,14 @@ Connection::Connection(const std::shared_ptr<TLSObject>& tlsObject,
   , m_ioAction(nullptr)
 {
 
-  auto& streamInContext = stream->getInputStreamContext();
+  auto& streamInContext = stream.object->getInputStreamContext();
   data::stream::Context::Properties inProperties(streamInContext.getProperties());
   inProperties.put("tls", "libressl");
   inProperties.getAll();
 
   m_inContext = new ConnectionContext(this, streamInContext.getStreamType(), std::move(inProperties));
 
-  auto& streamOutContext = stream->getOutputStreamContext();
+  auto& streamOutContext = stream.object->getOutputStreamContext();
   if(streamInContext == streamOutContext) {
     m_outContext = m_inContext;
   } else {
@@ -335,11 +335,11 @@ oatpp::v_io_size Connection::read(void *buff, v_buff_size count, async::Action& 
 }
 
 void Connection::setOutputStreamIOMode(oatpp::data::stream::IOMode ioMode) {
-  m_stream->setOutputStreamIOMode(ioMode);
+  m_stream.object->setOutputStreamIOMode(ioMode);
 }
 
 oatpp::data::stream::IOMode Connection::getOutputStreamIOMode() {
-  return m_stream->getOutputStreamIOMode();
+  return m_stream.object->getOutputStreamIOMode();
 }
 
 oatpp::data::stream::Context& Connection::getOutputStreamContext() {
@@ -347,11 +347,11 @@ oatpp::data::stream::Context& Connection::getOutputStreamContext() {
 }
 
 void Connection::setInputStreamIOMode(oatpp::data::stream::IOMode ioMode) {
-  m_stream->setInputStreamIOMode(ioMode);
+  m_stream.object->setInputStreamIOMode(ioMode);
 }
 
 oatpp::data::stream::IOMode Connection::getInputStreamIOMode() {
-  return m_stream->getInputStreamIOMode();
+  return m_stream.object->getInputStreamIOMode();
 }
 
 oatpp::data::stream::Context& Connection::getInputStreamContext() {
@@ -364,7 +364,7 @@ void Connection::closeTLS(){
   }
 }
 
-std::shared_ptr<data::stream::IOStream> Connection::getTransportStream() {
+provider::ResourceHandle<data::stream::IOStream> Connection::getTransportStream() {
   return m_stream;
 }
   

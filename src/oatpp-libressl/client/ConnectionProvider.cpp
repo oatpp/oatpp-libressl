@@ -32,17 +32,38 @@
 
 namespace oatpp { namespace libressl { namespace client {
 
+void ConnectionProvider::ConnectionInvalidator::invalidate(const std::shared_ptr<data::stream::IOStream> &connection){
+
+  auto c = std::static_pointer_cast<oatpp::libressl::Connection>(connection);
+
+  /********************************************
+   * WARNING!!!
+   *
+   * c->closeTLS(); <--- DO NOT
+   *
+   * DO NOT CLOSE or DELETE TLS handles here.
+   * Remember - other threads can still be
+   * waiting for TLS events.
+   ********************************************/
+
+  /* Invalidate underlying transport */
+  auto s = c->getTransportStream();
+  s.invalidator->invalidate(s.object);
+
+}
+
 ConnectionProvider::ConnectionProvider(const std::shared_ptr<Config>& config,
                                        const std::shared_ptr<oatpp::network::ClientConnectionProvider>& streamProvider)
-  : m_config(config)
+  : m_connectionInvalidator(std::make_shared<ConnectionInvalidator>())
+  , m_config(config)
   , m_streamProvider(streamProvider)
 {
 
   setProperty(PROPERTY_HOST, streamProvider->getProperty(PROPERTY_HOST).toString());
   setProperty(PROPERTY_PORT, streamProvider->getProperty(PROPERTY_PORT).toString());
 
-  auto calback = CRYPTO_get_locking_callback();
-  if(!calback) {
+  auto callback = CRYPTO_get_locking_callback();
+  if(!callback) {
     OATPP_LOGD("[oatpp::libressl::client::ConnectionProvider::ConnectionProvider()]",
                "WARNING. libressl. CRYPTO_set_locking_callback is NOT set. "
                "This can cause problems using libressl in multithreaded environment! "
@@ -68,7 +89,7 @@ std::shared_ptr<ConnectionProvider> ConnectionProvider::createShared(const std::
 }
 
   
-std::shared_ptr<data::stream::IOStream> ConnectionProvider::get() {
+provider::ResourceHandle<data::stream::IOStream> ConnectionProvider::get() {
 
   Connection::TLSHandle tlsHandle = tls_client();
   tls_configure(tlsHandle, m_config->getTLSConfig());
@@ -86,24 +107,28 @@ std::shared_ptr<data::stream::IOStream> ConnectionProvider::get() {
   connection->setInputStreamIOMode(oatpp::data::stream::IOMode::BLOCKING);
 
   connection->initContexts();
-  return connection;
+  return provider::ResourceHandle<data::stream::IOStream>(connection, m_connectionInvalidator);
 
 }
 
-oatpp::async::CoroutineStarterForResult<const std::shared_ptr<data::stream::IOStream>&> ConnectionProvider::getAsync() {
+oatpp::async::CoroutineStarterForResult<const provider::ResourceHandle<data::stream::IOStream>&> ConnectionProvider::getAsync() {
 
 
-  class ConnectCoroutine : public oatpp::async::CoroutineWithResult<ConnectCoroutine, const std::shared_ptr<oatpp::data::stream::IOStream>&> {
+  class ConnectCoroutine : public async::CoroutineWithResult<ConnectCoroutine, const provider::ResourceHandle<data::stream::IOStream>&> {
   private:
+    std::shared_ptr<ConnectionInvalidator> m_connectionInvalidator;
     std::shared_ptr<Config> m_config;
-    std::shared_ptr<oatpp::network::ClientConnectionProvider> m_streamProvider;
+    std::shared_ptr<network::ClientConnectionProvider> m_streamProvider;
   private:
-    std::shared_ptr<oatpp::data::stream::IOStream> m_stream;
+    provider::ResourceHandle<data::stream::IOStream> m_stream;
     std::shared_ptr<Connection> m_connection;
   public:
 
-    ConnectCoroutine(const std::shared_ptr<Config>& config, const std::shared_ptr<oatpp::network::ClientConnectionProvider>& streamProvider)
-      : m_config(config)
+    ConnectCoroutine(const std::shared_ptr<ConnectionInvalidator>& connectionInvalidator,
+                     const std::shared_ptr<Config>& config,
+                     const std::shared_ptr<network::ClientConnectionProvider>& streamProvider)
+      : m_connectionInvalidator(connectionInvalidator)
+      , m_config(config)
       , m_streamProvider(streamProvider)
     {}
 
@@ -112,7 +137,7 @@ oatpp::async::CoroutineStarterForResult<const std::shared_ptr<data::stream::IOSt
       return m_streamProvider->getAsync().callbackTo(&ConnectCoroutine::onConnected);
     }
 
-    Action onConnected(const std::shared_ptr<oatpp::data::stream::IOStream>& stream) {
+    Action onConnected(const provider::ResourceHandle<data::stream::IOStream>& stream) {
       /* transport stream obtained */
       m_stream = stream;
       return yieldTo(&ConnectCoroutine::secureConnection);
@@ -140,33 +165,13 @@ oatpp::async::CoroutineStarterForResult<const std::shared_ptr<data::stream::IOSt
     }
 
     Action onSuccess() {
-      return _return(m_connection);
+      return _return(provider::ResourceHandle<data::stream::IOStream>(m_connection, m_connectionInvalidator));
     }
 
 
   };
 
-  return ConnectCoroutine::startForResult(m_config, m_streamProvider);
-
-}
-
-void ConnectionProvider::invalidate(const std::shared_ptr<data::stream::IOStream>& connection) {
-
-  auto c = std::static_pointer_cast<oatpp::libressl::Connection>(connection);
-
-  /********************************************
-   * WARNING!!!
-   *
-   * c->closeTLS(); <--- DO NOT
-   *
-   * DO NOT CLOSE or DELETE TLS handles here.
-   * Remember - other threads can still be
-   * waiting for TLS events.
-   ********************************************/
-
-  /* Invalidate underlying transport */
-  auto s = c->getTransportStream();
-  m_streamProvider->invalidate(s);
+  return ConnectCoroutine::startForResult(m_connectionInvalidator, m_config, m_streamProvider);
 
 }
   

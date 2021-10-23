@@ -37,8 +37,16 @@ namespace oatpp { namespace libressl { namespace client {
  * Libressl client connection provider.
  * Extends &id:oatpp::base::Countable;, &id:oatpp::network::ClientConnectionProvider;.
  */
-class ConnectionProvider : public base::Countable, public oatpp::network::ClientConnectionProvider {
+class ConnectionProvider : public oatpp::network::ClientConnectionProvider {
 private:
+
+  class ConnectionInvalidator : public provider::Invalidator<data::stream::IOStream> {
+  public:
+    void invalidate(const std::shared_ptr<data::stream::IOStream>& connection) override;
+  };
+
+private:
+  std::shared_ptr<ConnectionInvalidator> m_connectionInvalidator;
   std::shared_ptr<Config> m_config;
   std::shared_ptr<oatpp::network::ClientConnectionProvider> m_streamProvider;
   bool m_closed;
@@ -83,19 +91,13 @@ public:
    * Get connection.
    * @return - `std::shared_ptr` to &id:oatpp::data::stream::IOStream;.
    */
-  std::shared_ptr<data::stream::IOStream> get() override;
+  provider::ResourceHandle<data::stream::IOStream> get() override;
 
   /**
    * Get connection in asynchronous manner.
    * @return - &id:oatpp::async::CoroutineStarterForResult;.
    */
-  oatpp::async::CoroutineStarterForResult<const std::shared_ptr<oatpp::data::stream::IOStream>&> getAsync() override;
-
-  /**
-   * Will call `invalidateConnection()` for the underlying transport stream.
-   * @param connection - **MUST** be an instance of &id:oatpp::libressl::Connection;.
-   */
-  void invalidate(const std::shared_ptr<data::stream::IOStream>& connection) override;
+  oatpp::async::CoroutineStarterForResult<const provider::ResourceHandle<oatpp::data::stream::IOStream>&> getAsync() override;
 
 };
   

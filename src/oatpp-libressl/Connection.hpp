@@ -27,6 +27,7 @@
 
 #include "TLSObject.hpp"
 
+#include "oatpp/core/provider/Provider.hpp"
 #include "oatpp/core/base/memory/ObjectPool.hpp"
 #include "oatpp/core/data/stream/Stream.hpp"
 
@@ -77,7 +78,7 @@ public:
 private:
   TLSHandle m_tlsHandle;
   std::shared_ptr<TLSObject> m_tlsObject;
-  std::shared_ptr<oatpp::data::stream::IOStream> m_stream;
+  provider::ResourceHandle<oatpp::data::stream::IOStream> m_stream;
   std::atomic<bool> m_initialized;
 private:
   async::Action* m_ioAction;
@@ -100,7 +101,7 @@ public:
    * @param stream - underlying transport stream. &id:oatpp::data::stream::IOStream;.
    */
   Connection(const std::shared_ptr<TLSObject>& tlsObject,
-             const std::shared_ptr<oatpp::data::stream::IOStream>& stream);
+             const provider::ResourceHandle<data::stream::IOStream>& stream);
 
   /**
    * Virtual destructor.
@@ -172,7 +173,7 @@ public:
    * Get the underlying transport stream.
    * @return
    */
-  std::shared_ptr<data::stream::IOStream> getTransportStream();
+  provider::ResourceHandle<data::stream::IOStream> getTransportStream();
 
   /**
    * Get TLS handle.
