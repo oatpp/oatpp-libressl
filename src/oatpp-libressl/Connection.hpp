@@ -28,7 +28,6 @@
 #include "TLSObject.hpp"
 
 #include "oatpp/core/provider/Provider.hpp"
-#include "oatpp/core/base/memory/ObjectPool.hpp"
 #include "oatpp/core/data/stream/Stream.hpp"
 
 namespace oatpp { namespace libressl {
